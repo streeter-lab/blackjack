@@ -310,6 +310,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   color: var(--text-muted);
   font-weight: 600;
   border: 1px solid transparent;
+  cursor: pointer;
 }
 .hand-tab.active {
   background: rgba(255,255,255,0.2);
@@ -336,6 +337,40 @@ button:disabled { opacity: 0.4; cursor: default; }
 #coach-pill.hidden { display: none; }
 #coach-pill.deviation {
   background: rgba(217, 119, 6, 0.75);
+}
+
+/* ===== COUNT PILL ===== */
+#count-pill {
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--text-primary);
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  text-align: center;
+  margin: 4px auto;
+  width: fit-content;
+  max-width: 90%;
+  z-index: 2;
+  position: relative;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+#count-pill.hidden { display: none; }
+#count-pill .count-label {
+  color: var(--text-muted);
+  font-size: 0.65rem;
+  margin-right: 3px;
+}
+#count-pill .count-value { font-weight: 700; }
+#count-pill .count-positive { color: #4ade80; }
+#count-pill .count-negative { color: #f87171; }
+#count-pill .count-neutral { color: var(--text-muted); }
+#count-pill .bet-suggest {
+  border-left: 1px solid rgba(255,255,255,0.15);
+  padding-left: 12px;
+  color: var(--gold);
+  font-weight: 600;
 }
 
 /* ===== SHUFFLE INDICATOR ===== */
@@ -804,6 +839,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   </section>
 
   <div id="coach-pill" class="hidden" aria-live="polite"></div>
+  <div id="count-pill" class="hidden" aria-live="polite"></div>
   <div id="shuffle-indicator" class="hidden">Shuffling&hellip;</div>
 
   <div id="table-bet" class="hidden">
@@ -905,6 +941,17 @@ button:disabled { opacity: 0.4; cursor: default; }
       </label>
     </div>
     <div class="setting-hint">Vibration feedback on mobile devices.</div>
+  </div>
+
+  <div class="setting-group">
+    <div class="setting-row">
+      <span>Card Counting</span>
+      <label class="toggle">
+        <input type="checkbox" id="count-toggle">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div class="setting-hint">Shows Hi-Lo running count, true count, and bet suggestions.</div>
   </div>
 
   <button id="reset-stats-btn">Reset Statistics</button>
@@ -1123,17 +1170,20 @@ button:disabled { opacity: 0.4; cursor: default; }
   var $settingsCloseBtn = document.getElementById('settings-close-btn');
   var $soundToggle = document.getElementById('sound-toggle');
   var $hapticsToggle = document.getElementById('haptics-toggle');
+  var $countToggle = document.getElementById('count-toggle');
+  var $countPill = document.getElementById('count-pill');
   var $handTabs = document.getElementById('hand-tabs');
 
   // ===== GAME STATE =====
   var game = {
     balance: 1000,
     stats: { wins: 0, losses: 0, pushes: 0, blackjacks: 0 },
-    settings: { deckCount: 6, coachEnabled: false, soundEnabled: false, hapticsEnabled: true },
+    settings: { deckCount: 6, coachEnabled: false, soundEnabled: false, hapticsEnabled: true, countEnabled: false },
     shoe: [],
     deckCount: 6,
     penetrationMark: 0,
     needsReshuffle: false,
+    runningCount: 0,
     phase: 'betting',
     currentBet: 0,
     lastBet: 0,
@@ -1178,6 +1228,9 @@ button:disabled { opacity: 0.4; cursor: default; }
           if (typeof data.settings.hapticsEnabled === 'boolean') {
             game.settings.hapticsEnabled = data.settings.hapticsEnabled;
           }
+          if (typeof data.settings.countEnabled === 'boolean') {
+            game.settings.countEnabled = data.settings.countEnabled;
+          }
         }
         if (typeof data.lastBet === 'number' && data.lastBet >= 0) {
           game.lastBet = data.lastBet;
@@ -1214,11 +1267,48 @@ button:disabled { opacity: 0.4; cursor: default; }
     game.shoe = fisherYatesShuffle(createShoe(game.deckCount));
     game.penetrationMark = Math.floor(game.shoe.length * 0.75);
     game.needsReshuffle = false;
+    game.runningCount = 0;
   }
 
   function drawCard() {
     if (game.shoe.length === 0) initShoe();
     return game.shoe.pop();
+  }
+
+  function hiLoValue(rank) {
+    if (rank === '2' || rank === '3' || rank === '4' || rank === '5' || rank === '6') return 1;
+    if (rank === '7' || rank === '8' || rank === '9') return 0;
+    return -1;
+  }
+
+  function updateCount(card) {
+    game.runningCount += hiLoValue(card.rank);
+    renderCountPill();
+  }
+
+  function getTrueCount() {
+    var remainingDecks = game.shoe.length / 52;
+    if (remainingDecks < 0.5) remainingDecks = 0.5;
+    return Math.round((game.runningCount / remainingDecks) * 10) / 10;
+  }
+
+  function renderCountPill() {
+    if (!game.settings.countEnabled) {
+      $countPill.classList.add('hidden');
+      return;
+    }
+    var rc = game.runningCount;
+    var tc = getTrueCount();
+    var minBet = 5;
+    var betSuggest = tc >= 5 ? minBet * 8 : tc >= 3 ? minBet * 4 : tc >= 1 ? minBet * 2 : minBet;
+    var rcClass = rc > 0 ? 'count-positive' : rc < 0 ? 'count-negative' : 'count-neutral';
+    var tcClass = tc > 0 ? 'count-positive' : tc < 0 ? 'count-negative' : 'count-neutral';
+
+    $countPill.classList.remove('hidden');
+    $countPill.innerHTML =
+      '<span class="count-item"><span class="count-label">RC</span><span class="count-value ' + rcClass + '">' + (rc >= 0 ? '+' : '') + rc + '</span></span>' +
+      '<span class="count-item"><span class="count-label">TC</span><span class="count-value ' + tcClass + '">' + (tc >= 0 ? '+' : '') + tc.toFixed(1) + '</span></span>' +
+      '<span class="count-item bet-suggest">Bet $' + betSuggest + '</span>';
   }
 
   function checkPenetration() {
@@ -1432,11 +1522,12 @@ button:disabled { opacity: 0.4; cursor: default; }
   function updateActionButtons() {
     if (game.hands.length === 0) return;
     var hand = game.hands[game.activeHandIndex];
-    $doubleBtn.disabled = !canDouble(hand);
-    $splitBtn.disabled = !canSplit(hand);
-    $surrenderBtn.disabled = !canSurrender(hand);
-    $hitBtn.disabled = false;
-    $standBtn.disabled = false;
+    var resolved = hand.stood || hand.busted || hand.surrendered || hand.doubled;
+    $doubleBtn.disabled = resolved || !canDouble(hand);
+    $splitBtn.disabled = resolved || !canSplit(hand);
+    $surrenderBtn.disabled = resolved || !canSurrender(hand);
+    $hitBtn.disabled = !!resolved;
+    $standBtn.disabled = !!resolved;
   }
 
   function disableActions() {
@@ -1480,6 +1571,19 @@ button:disabled { opacity: 0.4; cursor: default; }
       }
       var val = handValue(game.hands[i].cards);
       tab.textContent = 'Hand ' + (i + 1) + ': ' + val;
+      (function(idx) {
+        tab.addEventListener('click', function() {
+          if (game.busy) return;
+          game.activeHandIndex = idx;
+          renderPlayerCards();
+          updateScores();
+          renderHandTabs();
+          if (game.phase === 'playing') {
+            updateActionButtons();
+            updateCoach();
+          }
+        });
+      })(i);
       $handTabs.appendChild(tab);
     }
   }
@@ -1600,6 +1704,7 @@ button:disabled { opacity: 0.4; cursor: default; }
     $playerScore.textContent = '';
     $handTabs.classList.add('hidden');
     $coachPill.classList.add('hidden');
+    renderCountPill();
     hideResult();
     showPhase('betting');
     updateBetDisplay();
@@ -1657,15 +1762,18 @@ button:disabled { opacity: 0.4; cursor: default; }
     game.hands[0].cards.push(pc1);
     animateDeal($playerCards, pc1, false, 0)
     .then(function() {
+      updateCount(pc1);
       game.dealer.cards.push(dc1);
       return animateDeal($dealerCards, dc1, false, 200);
     })
     .then(function() {
+      updateCount(dc1);
       game.hands[0].cards.push(pc2);
       updateScores();
       return animateDeal($playerCards, pc2, false, 200);
     })
     .then(function() {
+      updateCount(pc2);
       game.dealer.cards.push(dc2);
       return animateDeal($dealerCards, dc2, true, 200);
     })
@@ -1687,11 +1795,13 @@ button:disabled { opacity: 0.4; cursor: default; }
         dealerHole.faceDown = false;
         var holeEl = $dealerCards.children[1];
         flipCard(holeEl, dealerHole).then(function() {
+          updateCount(dealerHole);
           updateScores();
           if (isBlackjack(game.hands[0].cards)) {
             game.hands[0].result = 'push';
             game.balance += game.hands[0].bet;
             game.stats.pushes++;
+            game.stats.blackjacks++;
             endRound([{ text: 'Push', color: 'var(--text-muted)', sub: 'Both have Blackjack' }]);
           } else {
             game.hands[0].result = 'lose';
@@ -1705,7 +1815,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 
     // Player blackjack
     if (isBlackjack(game.hands[0].cards)) {
-      var payout = Math.floor(game.hands[0].bet * 1.5);
+      var payout = Math.round(game.hands[0].bet * 1.5);
       game.balance += game.hands[0].bet + payout;
       game.hands[0].result = 'blackjack';
       game.stats.wins++;
@@ -1729,6 +1839,7 @@ button:disabled { opacity: 0.4; cursor: default; }
     hand.cards.push(card);
 
     animateDeal($playerCards, card, false, 0).then(function() {
+      updateCount(card);
       updateScores();
       if (isBusted(hand.cards)) {
         hand.busted = true;
@@ -1750,6 +1861,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 
   function playerStand() {
     if (game.busy) return;
+    game.busy = true;
     checkDeviation('S');
     game.hands[game.activeHandIndex].stood = true;
     advanceToNextHand();
@@ -1771,6 +1883,7 @@ button:disabled { opacity: 0.4; cursor: default; }
     hand.cards.push(card);
 
     animateDeal($playerCards, card, false, 0).then(function() {
+      updateCount(card);
       updateScores();
       if (isBusted(hand.cards)) {
         hand.busted = true;
@@ -1816,6 +1929,8 @@ button:disabled { opacity: 0.4; cursor: default; }
     renderPlayerCards();
     renderHandTabs();
     updateScores();
+    updateCount(newCard1);
+    updateCount(newCard2);
 
     if (card1.rank === 'A') {
       advanceToNextHand();
@@ -1833,7 +1948,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 
     hand.surrendered = true;
     hand.result = 'surrender';
-    var halfBack = Math.floor(hand.bet / 2);
+    var halfBack = Math.round(hand.bet / 2);
     game.balance += halfBack;
     game.stats.losses++;
     updateHUD();
@@ -1869,6 +1984,7 @@ button:disabled { opacity: 0.4; cursor: default; }
     }
 
     game.activeHandIndex = nextIdx;
+    game.busy = false;
     renderPlayerCards();
     renderHandTabs();
     updateScores();
@@ -1888,6 +2004,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 
     dealerSay('reveal', 1500);
     flipCard(holeEl, holeCard).then(function() {
+      updateCount(holeCard);
       updateScores();
       dealerDraw();
     });
@@ -1899,6 +2016,7 @@ button:disabled { opacity: 0.4; cursor: default; }
       var card = drawCard();
       game.dealer.cards.push(card);
       animateDeal($dealerCards, card, false, 400).then(function() {
+        updateCount(card);
         updateScores();
         setTimeout(dealerDraw, 200);
       });
@@ -2025,6 +2143,7 @@ button:disabled { opacity: 0.4; cursor: default; }
     $coachToggle.checked = game.settings.coachEnabled;
     $soundToggle.checked = game.settings.soundEnabled;
     $hapticsToggle.checked = game.settings.hapticsEnabled;
+    $countToggle.checked = game.settings.countEnabled;
   }
 
   function closeSettings() {
@@ -2038,8 +2157,10 @@ button:disabled { opacity: 0.4; cursor: default; }
     game.settings.coachEnabled = $coachToggle.checked;
     game.settings.soundEnabled = $soundToggle.checked;
     game.settings.hapticsEnabled = $hapticsToggle.checked;
+    game.settings.countEnabled = $countToggle.checked;
     saveState();
     updateCoach();
+    renderCountPill();
   }
 
   function resetStats() {
@@ -2067,8 +2188,12 @@ button:disabled { opacity: 0.4; cursor: default; }
     var max = game.balance - game.currentBet;
     var val = prompt('Enter bet amount (max $' + max + '):');
     if (val === null) return;
-    var num = parseInt(val);
-    if (num > 0 && num <= max) {
+    var num = parseInt(val, 10);
+    if (isNaN(num) || num <= 0) {
+      alert('Please enter a valid positive number.');
+    } else if (num > max) {
+      alert('Maximum bet is $' + max + '.');
+    } else {
       placeBet(num);
     }
   });
@@ -2165,6 +2290,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   $coachToggle.checked = game.settings.coachEnabled;
   $soundToggle.checked = game.settings.soundEnabled;
   $hapticsToggle.checked = game.settings.hapticsEnabled;
+  $countToggle.checked = game.settings.countEnabled;
   initShoe();
   updateHUD();
   startBetting();
