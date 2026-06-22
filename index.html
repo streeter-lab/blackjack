@@ -288,6 +288,62 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
 #count-pill .count-neutral { color: var(--text-muted); }
 #count-pill .bet-suggest { border-left: 1px solid rgba(255,255,255,0.15); padding-left: 12px; color: var(--gold); font-weight: 600; }
 
+/* ===== SHOE INDICATOR ===== */
+#shoe-indicator {
+  display: flex; align-items: center; gap: 8px; padding: 2px 16px; justify-content: center;
+}
+#shoe-indicator.hidden { display: none; }
+.shoe-bar-wrap {
+  flex: 1; max-width: 200px; height: 6px; border-radius: 3px;
+  background: rgba(255,255,255,0.08); overflow: hidden; position: relative;
+}
+.shoe-bar-fill {
+  height: 100%; border-radius: 3px; background: var(--gold);
+  transition: width 300ms ease, background-color 300ms ease;
+}
+.shoe-bar-fill.low { background: #EF4444; }
+.shoe-label { font-size: 0.6rem; color: var(--text-muted); font-weight: 600; white-space: nowrap; }
+
+/* ===== CUSTOM BET MODAL ===== */
+#bet-modal-overlay {
+  position: fixed; inset: 0; background: var(--overlay-bg); z-index: 60;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 200ms;
+}
+#bet-modal-overlay.open { opacity: 1; pointer-events: auto; }
+#bet-modal {
+  background: var(--felt-light); border-radius: 16px; padding: 24px; width: 280px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1);
+}
+#bet-modal h3 { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+#bet-modal .modal-sub { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 16px; }
+#bet-modal-input {
+  width: 100%; padding: 12px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.15);
+  background: var(--felt-dark); color: var(--text-primary); font-family: var(--font);
+  font-size: 1.2rem; font-weight: 700; text-align: center; outline: none;
+  transition: border-color 200ms;
+}
+#bet-modal-input:focus { border-color: var(--gold); }
+#bet-modal-input.error { border-color: var(--btn-danger); }
+#bet-modal-error { font-size: 0.7rem; color: var(--btn-danger); min-height: 1.2em; margin-top: 6px; text-align: center; }
+.modal-btns { display: flex; gap: 10px; margin-top: 14px; }
+.modal-btns button {
+  flex: 1; padding: 10px; border-radius: 10px; font-size: 0.85rem; font-weight: 700;
+  font-family: var(--font); min-height: var(--tap-min); transition: all 150ms;
+}
+.modal-cancel { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+.modal-confirm { background: var(--gold); color: #000; }
+.modal-btns button:active { transform: scale(0.96); }
+
+/* ===== BET FEEDBACK TOAST ===== */
+#bet-toast {
+  position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: rgba(239, 68, 68, 0.9); color: #fff; padding: 8px 18px; border-radius: 20px;
+  font-size: 0.75rem; font-weight: 600; opacity: 0; pointer-events: none;
+  transition: opacity 200ms, transform 200ms; z-index: 40; white-space: nowrap;
+}
+#bet-toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
 /* ===== SHUFFLE INDICATOR ===== */
 #shuffle-indicator { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--overlay-bg); padding: 12px 28px; border-radius: 12px; font-size: 1rem; font-weight: 600; letter-spacing: 1px; z-index: 30; animation: pulse 1s ease-in-out infinite; }
 #shuffle-indicator.hidden { display: none; }
@@ -366,14 +422,20 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
   flex: 0 0 auto;
 }
 #action-bar.hidden { display: none; }
-.action-group { display: flex; gap: 12px; justify-content: center; align-items: flex-start; }
-.action-btn { width: 64px; display: flex; flex-direction: column; align-items: center; gap: 6px; background: none; padding: 0; color: var(--text-primary); transition: all 150ms; }
+.action-group { display: flex; gap: 8px; justify-content: center; align-items: flex-start; padding: 0 4px; }
+.action-btn { min-width: 0; flex: 0 1 64px; display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; padding: 0; color: var(--text-primary); transition: all 150ms; }
 .action-btn:active:not(:disabled) { transform: scale(0.92); }
 .action-icon {
-  width: 60px; height: 60px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;
+  width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.35rem;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.2);
 }
-.action-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-primary); text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+.action-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; color: var(--text-primary); text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+@media (min-width: 380px) {
+  .action-group { gap: 12px; }
+  .action-btn { flex: 0 1 64px; gap: 6px; }
+  .action-icon { width: 60px; height: 60px; border-radius: 16px; font-size: 1.5rem; }
+  .action-label { font-size: 0.7rem; letter-spacing: 0.5px; }
+}
 
 .action-hit .action-icon { background: linear-gradient(135deg, #10B981, #059669); border: 1px solid #047857; color: #fff; }
 .action-stand .action-icon { background: linear-gradient(135deg, #F1F5F9, #CBD5E1); border: 1px solid #94A3B8; color: #0F172A; }
@@ -449,6 +511,11 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     <div id="dealer-cards" class="card-row"></div>
   </section>
 
+  <div id="shoe-indicator" class="hidden">
+    <span class="shoe-label">Shoe</span>
+    <div class="shoe-bar-wrap"><div class="shoe-bar-fill" id="shoe-bar"></div></div>
+    <span class="shoe-label" id="shoe-pct"></span>
+  </div>
   <div id="coach-pill" class="hidden" aria-live="polite"></div>
   <div id="count-pill" class="hidden" aria-live="polite"></div>
   <div id="shuffle-indicator" class="hidden">Shuffling&hellip;</div>
@@ -493,6 +560,21 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     <button id="surrender-btn" class="action-btn action-surrender"><span class="action-icon">&#9873;</span><span class="action-label">Give Up</span></button>
   </div>
 </section>
+
+<div id="bet-modal-overlay">
+  <div id="bet-modal">
+    <h3>Custom Bet</h3>
+    <p class="modal-sub" id="bet-modal-max"></p>
+    <input type="number" id="bet-modal-input" inputmode="numeric" min="1" placeholder="0" autocomplete="off">
+    <div id="bet-modal-error"></div>
+    <div class="modal-btns">
+      <button class="modal-cancel" id="bet-modal-cancel">Cancel</button>
+      <button class="modal-confirm" id="bet-modal-confirm">Place Bet</button>
+    </div>
+  </div>
+</div>
+
+<div id="bet-toast"></div>
 
 <div id="broke-overlay" class="hidden">
   <h2>You're Broke!</h2>
@@ -784,6 +866,16 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
   var $countToggle = document.getElementById('count-toggle');
   var $countPill = document.getElementById('count-pill');
   var $handTabs = document.getElementById('hand-tabs');
+  var $shoeIndicator = document.getElementById('shoe-indicator');
+  var $shoeBar = document.getElementById('shoe-bar');
+  var $shoePct = document.getElementById('shoe-pct');
+  var $betModalOverlay = document.getElementById('bet-modal-overlay');
+  var $betModalInput = document.getElementById('bet-modal-input');
+  var $betModalMax = document.getElementById('bet-modal-max');
+  var $betModalError = document.getElementById('bet-modal-error');
+  var $betModalConfirm = document.getElementById('bet-modal-confirm');
+  var $betModalCancel = document.getElementById('bet-modal-cancel');
+  var $betToast = document.getElementById('bet-toast');
 
   // ===== GAME STATE =====
   var game = {
@@ -895,6 +987,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
   function updateCount(card) {
     game.runningCount += hiLoValue(card.rank);
     renderCountPill();
+    renderShoeIndicator();
   }
 
   function getTrueCount() {
@@ -920,6 +1013,23 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
       '<span class="count-item"><span class="count-label">RC</span><span class="count-value ' + rcClass + '">' + (rc >= 0 ? '+' : '') + rc + '</span></span>' +
       '<span class="count-item"><span class="count-label">TC</span><span class="count-value ' + tcClass + '">' + (tc >= 0 ? '+' : '') + tc.toFixed(1) + '</span></span>' +
       '<span class="count-item bet-suggest">Bet $' + betSuggest + '</span>';
+  }
+
+  function renderShoeIndicator() {
+    var total = game.deckCount * 52;
+    var remaining = game.shoe.length;
+    var pct = Math.round((remaining / total) * 100);
+    $shoeIndicator.classList.remove('hidden');
+    $shoeBar.style.width = pct + '%';
+    $shoeBar.classList.toggle('low', pct < 25);
+    $shoePct.textContent = pct + '%';
+  }
+
+  function showBetToast(msg) {
+    $betToast.textContent = msg;
+    $betToast.classList.add('visible');
+    clearTimeout(game._toastTimer);
+    game._toastTimer = setTimeout(function() { $betToast.classList.remove('visible'); }, 1800);
   }
 
   function checkPenetration() {
@@ -1342,7 +1452,11 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
   }
 
   function placeBet(amount) {
-    if (amount > game.balance - game.currentBet) return;
+    var remaining = game.balance - game.currentBet;
+    if (amount > remaining) {
+      showBetToast(remaining <= 0 ? 'No funds remaining' : 'Max additional bet: $' + remaining);
+      return;
+    }
     game.currentBet += amount;
     playSound('chip');
     playHaptic();
@@ -1735,6 +1849,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
       $shuffleInd.classList.remove('hidden');
       setTimeout(function() {
         initShoe();
+        renderShoeIndicator();
         $shuffleInd.classList.add('hidden');
         startBetting();
       }, 1200);
@@ -1809,18 +1924,52 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     })(chipBtns[i]);
   }
 
-  $chipCustom.addEventListener('click', function() {
+  function openBetModal() {
     var max = game.balance - game.currentBet;
-    var val = prompt('Enter bet amount (max $' + max + '):');
-    if (val === null) return;
-    var num = parseInt(val, 10);
+    $betModalMax.textContent = 'Max: $' + max;
+    $betModalInput.value = '';
+    $betModalInput.max = max;
+    $betModalError.textContent = '';
+    $betModalInput.classList.remove('error');
+    $betModalOverlay.classList.add('open');
+    setTimeout(function() { $betModalInput.focus(); }, 100);
+  }
+
+  function closeBetModal() {
+    $betModalOverlay.classList.remove('open');
+    $betModalInput.blur();
+  }
+
+  function confirmBetModal() {
+    var max = game.balance - game.currentBet;
+    var num = parseInt($betModalInput.value, 10);
     if (isNaN(num) || num <= 0) {
-      alert('Please enter a valid positive number.');
-    } else if (num > max) {
-      alert('Maximum bet is $' + max + '.');
-    } else {
-      placeBet(num);
+      $betModalError.textContent = 'Enter a valid positive number';
+      $betModalInput.classList.add('error');
+      return;
     }
+    if (num > max) {
+      $betModalError.textContent = 'Maximum bet is $' + max;
+      $betModalInput.classList.add('error');
+      return;
+    }
+    closeBetModal();
+    placeBet(num);
+  }
+
+  $chipCustom.addEventListener('click', openBetModal);
+  $betModalCancel.addEventListener('click', closeBetModal);
+  $betModalConfirm.addEventListener('click', confirmBetModal);
+  $betModalOverlay.addEventListener('click', function(e) {
+    if (e.target === $betModalOverlay) closeBetModal();
+  });
+  $betModalInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') confirmBetModal();
+    if (e.key === 'Escape') closeBetModal();
+  });
+  $betModalInput.addEventListener('input', function() {
+    $betModalInput.classList.remove('error');
+    $betModalError.textContent = '';
   });
 
   $clearBetBtn.addEventListener('click', clearBet);
@@ -1915,6 +2064,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
   $countToggle.checked = game.settings.countEnabled;
   initShoe();
   updateHUD();
+  renderShoeIndicator();
   startBetting();
   setIcons();
 
