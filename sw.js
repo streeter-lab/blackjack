@@ -1,17 +1,12 @@
-const CACHE_NAME = 'blackjack-v1';
-const ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/sw.js',
-  '/icon-192.png',
-  '/icon-512.png'
-];
+var CACHE_NAME = 'blackjack-v2';
+var ASSETS = ['/', '/index.html', '/manifest.json', '/sw.js'];
 
 self.addEventListener('install', function(e) {
   e.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
-      return cache.addAll(ASSETS);
+      return Promise.all(ASSETS.map(function(url) {
+        return cache.add(url).catch(function() {});
+      }));
     }).then(function() {
       return self.skipWaiting();
     })
@@ -32,9 +27,21 @@ self.addEventListener('activate', function(e) {
 });
 
 self.addEventListener('fetch', function(e) {
+  if (e.request.method !== 'GET') return;
   e.respondWith(
-    caches.match(e.request).then(function(r) {
-      return r || fetch(e.request);
+    caches.match(e.request).then(function(cached) {
+      if (cached) return cached;
+      return fetch(e.request).then(function(response) {
+        if (response.ok && e.request.url.indexOf(self.location.origin) === 0) {
+          var clone = response.clone();
+          caches.open(CACHE_NAME).then(function(cache) {
+            cache.put(e.request, clone);
+          });
+        }
+        return response;
+      }).catch(function() {
+        return caches.match('/index.html');
+      });
     })
   );
 });
