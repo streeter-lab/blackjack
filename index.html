@@ -150,9 +150,76 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
   60% { transform: translate(-5px, -3px); }
   80% { transform: translate(5px, 3px); }
 }
-.shake-active { 
-  animation: tableShake 300ms cubic-bezier(.36,.07,.19,.97) both; 
+.shake-active {
+  animation: tableShake 300ms cubic-bezier(.36,.07,.19,.97) both;
 }
+
+/* Balance Flash */
+@keyframes balanceWin  { 0% { color: var(--gold); text-shadow: 0 0 12px rgba(245,158,11,0.7); transform: scale(1.15); } 100% { color: var(--gold); text-shadow: 0 2px 4px rgba(0,0,0,0.5); transform: scale(1); } }
+@keyframes balanceLose { 0% { color: var(--btn-danger); text-shadow: 0 0 12px rgba(225,29,72,0.7); transform: scale(1.15); } 100% { color: var(--gold); text-shadow: 0 2px 4px rgba(0,0,0,0.5); transform: scale(1); } }
+#balance-display.flash-win  { animation: balanceWin 600ms ease-out; }
+#balance-display.flash-lose { animation: balanceLose 600ms ease-out; }
+
+/* Score Pop */
+@keyframes scorePop { 0% { transform: scale(1); } 40% { transform: scale(1.25); } 100% { transform: scale(1); } }
+.score-value.pop { animation: scorePop 300ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+/* Chip Toss (flying chip) */
+.chip-toss {
+  position: fixed; border-radius: 50%; pointer-events: none; z-index: 200;
+  width: 44px; height: 44px;
+  background: radial-gradient(circle at 38% 35%, rgba(255,255,255,0.25) 0%, transparent 55%), radial-gradient(circle at 50% 50%, var(--c) 0% 52%, transparent 52%), radial-gradient(circle at 50% 50%, #fff 56% 60%, transparent 60%), repeating-conic-gradient(var(--c) 0deg 18deg, #fff 18deg 36deg);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  transition: all 350ms cubic-bezier(0.2, 0.8, 0.3, 1);
+  opacity: 1;
+}
+.chip-toss.landed { opacity: 0; transform: scale(0.4); }
+
+/* Win Particles */
+#win-particles { position: absolute; inset: 0; pointer-events: none; z-index: 19; overflow: hidden; }
+.win-particle {
+  position: absolute; border-radius: 50%; pointer-events: none;
+  animation: particleFly var(--dur) cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+}
+@keyframes particleFly {
+  0% { opacity: 1; transform: translate(0, 0) scale(1); }
+  80% { opacity: 0.8; }
+  100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0); }
+}
+
+/* Card glow pulse on win */
+@keyframes cardGlow {
+  0%, 100% { box-shadow: 0 0 15px rgba(245,158,11,0.3), -2px 4px 10px rgba(0,0,0,0.4), inset 0 0 0 1px var(--gold); }
+  50% { box-shadow: 0 0 30px rgba(245,158,11,0.6), -2px 4px 10px rgba(0,0,0,0.4), inset 0 0 0 1px var(--gold); }
+}
+.card-row.win .card { animation: cardGlow 1.2s ease-in-out infinite; transform: translateY(-5px); }
+
+/* Table chip stack entrance */
+@keyframes chipDrop {
+  from { opacity: 0; transform: rotate(var(--rot)) translateY(-30px) scale(0.6); }
+  to   { opacity: 1; transform: rotate(var(--rot)) translateY(0) scale(1); }
+}
+.table-chip-item.dropping { animation: chipDrop 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+/* Phase transitions */
+#betting-area, #action-bar {
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+#betting-area.phase-enter { animation: phaseSlideUp 250ms ease-out; }
+#action-bar.phase-enter   { animation: phaseSlideUp 250ms ease-out; }
+@keyframes phaseSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Result overlay entrance */
+@keyframes resultBounce {
+  0%   { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+  60%  { transform: translate(-50%, -50%) scale(1.08); opacity: 1; }
+  80%  { transform: translate(-50%, -50%) scale(0.96); }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+#result-overlay.visible { animation: resultBounce 500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
 
 /* ===== CARD AREAS ===== */
 #dealer-area, #player-area {
@@ -254,10 +321,11 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
 .card-row.bust .card { opacity: 0.6; filter: grayscale(0.6); }
 
 /* Animations */
-.card.dealing { animation: dealIn var(--deal-dur) cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+.card.dealing { animation: dealIn var(--deal-dur) cubic-bezier(0.22, 0.9, 0.36, 1) forwards; }
 @keyframes dealIn {
-  from { transform: translateY(-100px) rotate(-10deg) scale(0.6); opacity: 0; box-shadow: 0 20px 30px rgba(0,0,0,0.5); }
-  to   { transform: translateY(0) rotate(var(--rand-rot)) scale(1); opacity: 1; box-shadow: -2px 4px 10px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.8); }
+  0%  { transform: translate(40vw, -80px) rotate(-15deg) scale(0.5); opacity: 0; box-shadow: 0 20px 30px rgba(0,0,0,0.5); }
+  40% { opacity: 1; }
+  100% { transform: translate(0, 0) rotate(var(--rand-rot)) scale(1); opacity: 1; box-shadow: -2px 4px 10px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.8); }
 }
 .card.flipping { animation: flipCard var(--flip-dur) ease-in-out forwards; }
 @keyframes flipCard {
@@ -588,6 +656,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     <div id="table-bet-label"></div>
   </div>
 
+  <div id="win-particles"></div>
   <div id="insurance-offer">
     <h3>Insurance?</h3>
     <div class="ins-sub">Dealer shows Ace &mdash; costs <span id="ins-cost"></span></div>
@@ -916,6 +985,73 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     if (!game.settings.hapticsEnabled) return;
     try { if (navigator.vibrate) navigator.vibrate(pattern); } catch(e) {}
   }
+
+  // ===== ANIMATION HELPERS =====
+  function flashBalance(type) {
+    $balance.classList.remove('flash-win', 'flash-lose');
+    void $balance.offsetWidth;
+    $balance.classList.add(type === 'win' ? 'flash-win' : 'flash-lose');
+    $balance.addEventListener('animationend', function() {
+      $balance.classList.remove('flash-win', 'flash-lose');
+    }, { once: true });
+  }
+
+  function popScore(el) {
+    el.classList.remove('pop');
+    void el.offsetWidth;
+    el.classList.add('pop');
+    el.addEventListener('animationend', function() { el.classList.remove('pop'); }, { once: true });
+  }
+
+  function chipToss(fromEl, toEl, color) {
+    var fromRect = fromEl.getBoundingClientRect();
+    var toRect = toEl.getBoundingClientRect();
+    var chip = document.createElement('div');
+    chip.className = 'chip-toss';
+    chip.style.setProperty('--c', color || 'var(--chip-25)');
+    chip.style.left = (fromRect.left + fromRect.width/2 - 22) + 'px';
+    chip.style.top = (fromRect.top + fromRect.height/2 - 22) + 'px';
+    document.body.appendChild(chip);
+    void chip.offsetWidth;
+    chip.style.left = (toRect.left + toRect.width/2 - 22) + 'px';
+    chip.style.top = (toRect.top + toRect.height/2 - 22) + 'px';
+    setTimeout(function() {
+      chip.classList.add('landed');
+      setTimeout(function() { chip.remove(); }, 350);
+    }, 350);
+  }
+
+  function spawnWinParticles(targetEl) {
+    var container = document.getElementById('win-particles');
+    if (!container) return;
+    var rect = targetEl.getBoundingClientRect();
+    var tableRect = container.getBoundingClientRect();
+    var cx = rect.left + rect.width/2 - tableRect.left;
+    var cy = rect.top + rect.height/2 - tableRect.top;
+    var colors = ['#F59E0B', '#FBBF24', '#FDE68A', '#fff', '#F97316'];
+    for (var i = 0; i < 20; i++) {
+      var p = document.createElement('div');
+      p.className = 'win-particle';
+      var angle = (Math.PI * 2 * i) / 20 + (Math.random() - 0.5) * 0.5;
+      var dist = 60 + Math.random() * 80;
+      var size = 3 + Math.random() * 5;
+      var dur = 600 + Math.random() * 400;
+      p.style.cssText = 'left:' + cx + 'px;top:' + cy + 'px;width:' + size + 'px;height:' + size + 'px;' +
+        'background:' + colors[i % colors.length] + ';' +
+        '--tx:' + (Math.cos(angle) * dist) + 'px;--ty:' + (Math.sin(angle) * dist) + 'px;--dur:' + dur + 'ms;';
+      container.appendChild(p);
+      (function(el) { setTimeout(function() { el.remove(); }, dur + 50); })(p);
+    }
+  }
+
+  function phaseEnter(el) {
+    el.classList.remove('phase-enter');
+    void el.offsetWidth;
+    el.classList.add('phase-enter');
+    el.addEventListener('animationend', function() { el.classList.remove('phase-enter'); }, { once: true });
+  }
+
+  var CHIP_COLORS = { 5: 'var(--chip-5)', 25: 'var(--chip-25)', 50: 'var(--chip-50)', 100: 'var(--chip-100)' };
 
   // ===== DOM REFS =====
   var $balance = document.getElementById('balance-display');
@@ -1289,6 +1425,8 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
   }
 
   function updateScores() {
+    var prevDealer = $dealerScore.textContent;
+    var prevPlayer = $playerScore.textContent;
     $dealerScore.classList.remove('bust', 'blackjack');
     $playerScore.classList.remove('bust', 'blackjack');
     var dealerCards = game.dealer.cards;
@@ -1325,6 +1463,8 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     } else {
       $playerScore.textContent = '';
     }
+    if ($dealerScore.textContent && $dealerScore.textContent !== prevDealer) popScore($dealerScore);
+    if ($playerScore.textContent && $playerScore.textContent !== prevPlayer) popScore($playerScore);
   }
 
   function renderTableBet(amount) {
@@ -1346,12 +1486,9 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     $tableChipStack.innerHTML = '';
     for (var j = 0; j < chips.length; j++) {
       var chip = document.createElement('div');
-      chip.className = 'table-chip-item';
-      
-      // Random rotation for chips (-30 to +30 degrees)
+      chip.className = 'table-chip-item dropping';
       var rot = (Math.random() - 0.5) * 60;
-      chip.style.cssText = '--c:' + chips[j] + ';bottom:' + (j * 4) + 'px; transform: rotate(' + rot + 'deg);';
-      
+      chip.style.cssText = '--c:' + chips[j] + ';bottom:' + (j * 4) + 'px;--rot:' + rot + 'deg;animation-delay:' + (j * 60) + 'ms;opacity:0;';
       $tableChipStack.appendChild(chip);
     }
     $tableBetLabel.textContent = '$' + amount;
@@ -1362,6 +1499,8 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     $bettingArea.classList.toggle('hidden', phase !== 'betting');
     $actionBar.classList.toggle('hidden', phase !== 'playing');
     $tableBet.classList.toggle('hidden', phase === 'betting');
+    if (phase === 'betting') phaseEnter($bettingArea);
+    if (phase === 'playing') phaseEnter($actionBar);
     if (phase !== 'betting' && game.currentBet > 0) {
       renderTableBet(game.currentBet);
     }
@@ -1742,7 +1881,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     }
   }
 
-  function placeBet(amount) {
+  function placeBet(amount, sourceEl) {
     var remaining = game.balance - game.currentBet;
     if (amount > remaining) {
       showBetToast(remaining <= 0 ? 'No funds remaining' : 'Max additional bet: $' + remaining);
@@ -1751,6 +1890,9 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     game.currentBet += amount;
     playSound('chip');
     playHaptic();
+    if (sourceEl && $currentBet) {
+      chipToss(sourceEl, $currentBet, CHIP_COLORS[amount] || 'var(--chip-custom)');
+    }
     updateBetDisplay();
   }
 
@@ -2160,6 +2302,13 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     playSound(quipKind === 'bust' ? 'win' : quipKind);
     playHaptic(hasGold ? [50, 30, 50] : [30]);
 
+    if (hasGold) {
+      flashBalance('win');
+      setTimeout(function() { spawnWinParticles($playerCards); }, 200);
+    } else if (hasRed) {
+      flashBalance('lose');
+    }
+
     showResult(messages);
     renderHandTabs();
     checkHandAchievements();
@@ -2251,7 +2400,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
   for (var i = 0; i < chipBtns.length; i++) {
     (function(btn) {
       btn.addEventListener('click', function() {
-        placeBet(parseInt(btn.dataset.value));
+        placeBet(parseInt(btn.dataset.value), btn);
       });
     })(chipBtns[i]);
   }
