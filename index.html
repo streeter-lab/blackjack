@@ -306,6 +306,8 @@ button:disabled { opacity: 0.4; cursor: default; }
 #result-overlay.visible {
   transform: translate(-50%, -50%) scale(1);
   opacity: 1;
+  pointer-events: auto;
+  cursor: pointer;
 }
 #result-overlay .result-sub {
   font-size: 0.9rem;
@@ -316,33 +318,69 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 /* ===== BETTING AREA ===== */
 #betting-area {
-  padding: 12px 8px;
-  padding-bottom: calc(12px + var(--safe-bottom));
+  padding: 10px 8px 6px;
+  padding-bottom: calc(6px + var(--safe-bottom));
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   background: var(--hud-bg);
   flex: 0 0 auto;
 }
 #betting-area.hidden { display: none; }
-#current-bet {
-  font-size: 1.1rem;
+#bet-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+.bet-circle-btn {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  font-size: 1.3rem;
   font-weight: 700;
-  color: var(--gold);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
+  transition: transform 100ms;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+}
+.bet-circle-btn:active:not(:disabled) { transform: scale(0.9); }
+.reset-btn { background: var(--chip-5); }
+.deal-btn { background: var(--chip-25); }
+#bet-chip-display {
+  position: relative;
+}
+.bet-chip-inner {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--chip-25);
+  border: 4px dashed rgba(255,255,255,0.5);
+  box-shadow: inset 0 0 0 4px rgba(255,255,255,0.2), 0 4px 12px rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fff;
 }
 #chip-tray {
   display: flex;
   gap: 8px;
   justify-content: center;
-  flex-wrap: wrap;
+  padding: 4px 0;
 }
 .chip {
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   font-weight: 700;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: #fff;
   border: 3px dashed rgba(255,255,255,0.5);
   display: flex;
@@ -354,81 +392,86 @@ button:disabled { opacity: 0.4; cursor: default; }
   transition: transform 100ms;
 }
 .chip:active:not(:disabled) { transform: scale(0.92); }
+.chip.selected { box-shadow: inset 0 0 0 3px rgba(255,255,255,0.2), 0 0 0 3px var(--gold), 0 3px 8px rgba(0,0,0,0.4); }
 .chip[data-value="5"] { background: var(--chip-5); }
 .chip[data-value="25"] { background: var(--chip-25); }
 .chip[data-value="50"] { background: var(--chip-50); }
 .chip[data-value="100"] { background: var(--chip-100); }
 .chip.chip-custom { background: var(--chip-custom); font-size: 1.2rem; }
-#bet-actions {
-  display: flex;
-  gap: 12px;
-  width: 100%;
-  max-width: 320px;
-}
-#bet-actions button {
-  flex: 1;
-  padding: 12px;
-  border-radius: 10px;
-  font-size: 1rem;
-  font-weight: 700;
-  min-height: var(--tap-min);
-}
-#clear-bet-btn {
-  background: rgba(255,255,255,0.1);
-  color: var(--text-muted);
-}
-#clear-bet-btn:active { background: rgba(255,255,255,0.2); }
-#deal-btn {
-  background: var(--btn-primary);
-  color: var(--text-primary);
-}
-#deal-btn:active:not(:disabled) { background: var(--btn-active); }
 
 /* ===== ACTION BAR ===== */
 #action-bar {
-  display: flex;
-  gap: 6px;
-  padding: 10px 8px;
-  padding-bottom: calc(10px + var(--safe-bottom));
+  padding: 8px 8px 6px;
+  padding-bottom: calc(6px + var(--safe-bottom));
   background: var(--hud-bg);
-  justify-content: center;
   flex: 0 0 auto;
 }
 #action-bar.hidden { display: none; }
+.action-group {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: flex-start;
+}
 .action-btn {
-  flex: 1;
-  max-width: 90px;
-  padding: 12px 4px;
-  border-radius: 10px;
-  font-size: 0.85rem;
-  font-weight: 700;
-  background: var(--btn-primary);
+  width: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  padding: 0;
   color: var(--text-primary);
-  min-height: var(--tap-min);
   transition: transform 100ms;
 }
-.action-btn:active:not(:disabled) { transform: scale(0.95); background: var(--btn-active); }
-
-/* ===== CONTINUE BAR ===== */
-#continue-bar {
+.action-btn:active:not(:disabled) { transform: scale(0.9); }
+.action-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
   display: flex;
-  padding: 12px 8px;
-  padding-bottom: calc(12px + var(--safe-bottom));
-  background: var(--hud-bg);
+  align-items: center;
   justify-content: center;
-  flex: 0 0 auto;
+  font-size: 1.3rem;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.4);
 }
-#continue-bar.hidden { display: none; }
-#deal-again-btn {
-  padding: 14px 48px;
-  border-radius: 12px;
-  font-size: 1.1rem;
-  font-weight: 700;
-  background: var(--btn-primary);
-  color: var(--text-primary);
-  min-height: var(--tap-min);
+.action-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-muted);
 }
-#deal-again-btn:active { background: var(--btn-active); }
+.action-hit .action-icon { background: #27AE60; color: #fff; }
+.action-stand .action-icon { background: #ECEFF1; color: #333; }
+.action-double .action-icon { background: #E91E63; color: #fff; }
+.action-split .action-icon { background: #2196F3; color: #fff; }
+.action-surrender .action-icon { background: #757575; color: #fff; }
+
+/* ===== TABLE BET CHIP ===== */
+#table-bet {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 4px 0;
+  z-index: 2;
+  position: relative;
+}
+#table-bet.hidden { display: none; }
+.table-chip {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--chip-25);
+  border: 3px dashed rgba(255,255,255,0.5);
+  box-shadow: inset 0 0 0 3px rgba(255,255,255,0.2), 0 3px 10px rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #fff;
+}
 
 /* ===== BROKE OVERLAY ===== */
 #broke-overlay {
@@ -614,6 +657,11 @@ button:disabled { opacity: 0.4; cursor: default; }
 
   <div id="coach-pill" class="hidden" aria-live="polite"></div>
   <div id="shuffle-indicator" class="hidden">Shuffling&hellip;</div>
+
+  <div id="table-bet" class="hidden">
+    <div class="table-chip" id="table-chip-display"></div>
+  </div>
+
   <div id="result-overlay" aria-live="assertive"></div>
 
   <section id="player-area">
@@ -625,7 +673,13 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 <!-- BETTING -->
 <section id="betting-area">
-  <div id="current-bet">Bet: $0</div>
+  <div id="bet-controls">
+    <button id="clear-bet-btn" class="bet-circle-btn reset-btn" aria-label="Reset bet">&#10005;</button>
+    <div id="bet-chip-display">
+      <div class="bet-chip-inner" id="current-bet">$0</div>
+    </div>
+    <button id="deal-btn" class="bet-circle-btn deal-btn" disabled aria-label="Deal">&#9654;</button>
+  </div>
   <div id="chip-tray">
     <button class="chip" data-value="5">$5</button>
     <button class="chip" data-value="25">$25</button>
@@ -633,24 +687,17 @@ button:disabled { opacity: 0.4; cursor: default; }
     <button class="chip" data-value="100">$100</button>
     <button class="chip chip-custom" id="chip-custom">&hellip;</button>
   </div>
-  <div id="bet-actions">
-    <button id="clear-bet-btn">Clear</button>
-    <button id="deal-btn" disabled>Deal</button>
-  </div>
 </section>
 
 <!-- ACTIONS -->
 <section id="action-bar" class="hidden">
-  <button id="hit-btn" class="action-btn">Hit</button>
-  <button id="stand-btn" class="action-btn">Stand</button>
-  <button id="double-btn" class="action-btn">Double</button>
-  <button id="split-btn" class="action-btn" disabled>Split</button>
-  <button id="surrender-btn" class="action-btn">Surrender</button>
-</section>
-
-<!-- CONTINUE -->
-<section id="continue-bar" class="hidden">
-  <button id="deal-again-btn">Deal Again</button>
+  <div class="action-group">
+    <button id="hit-btn" class="action-btn action-hit"><span class="action-icon">&#x1F0CF;</span><span class="action-label">Hit</span></button>
+    <button id="stand-btn" class="action-btn action-stand"><span class="action-icon">&#9995;</span><span class="action-label">Stand</span></button>
+    <button id="double-btn" class="action-btn action-double"><span class="action-icon">&#10007;</span><span class="action-label">Double</span></button>
+    <button id="split-btn" class="action-btn action-split" disabled><span class="action-icon">&#8646;</span><span class="action-label">Split</span></button>
+    <button id="surrender-btn" class="action-btn action-surrender"><span class="action-icon">&#9873;</span><span class="action-label">Give Up</span></button>
+  </div>
 </section>
 
 <!-- BROKE -->
@@ -828,8 +875,8 @@ button:disabled { opacity: 0.4; cursor: default; }
   var $doubleBtn = document.getElementById('double-btn');
   var $splitBtn = document.getElementById('split-btn');
   var $surrenderBtn = document.getElementById('surrender-btn');
-  var $continueBar = document.getElementById('continue-bar');
-  var $dealAgainBtn = document.getElementById('deal-again-btn');
+  var $tableBet = document.getElementById('table-bet');
+  var $tableChipDisplay = document.getElementById('table-chip-display');
   var $brokeOverlay = document.getElementById('broke-overlay');
   var $reloadBtn = document.getElementById('reload-btn');
   var $settingsOverlay = document.getElementById('settings-overlay');
@@ -851,10 +898,12 @@ button:disabled { opacity: 0.4; cursor: default; }
     needsReshuffle: false,
     phase: 'betting',
     currentBet: 0,
+    lastBet: 0,
     dealer: { cards: [] },
     hands: [],
     activeHandIndex: 0,
-    busy: false
+    busy: false,
+    resultTimer: null
   };
 
   // ===== PERSISTENCE =====
@@ -863,7 +912,8 @@ button:disabled { opacity: 0.4; cursor: default; }
       localStorage.setItem(STATE_KEY, JSON.stringify({
         balance: game.balance,
         stats: game.stats,
-        settings: game.settings
+        settings: game.settings,
+        lastBet: game.lastBet
       }));
     } catch(e) {}
   }
@@ -884,6 +934,9 @@ button:disabled { opacity: 0.4; cursor: default; }
             game.settings.deckCount = data.settings.deckCount;
           }
           game.settings.coachEnabled = !!data.settings.coachEnabled;
+        }
+        if (typeof data.lastBet === 'number' && data.lastBet >= 0) {
+          game.lastBet = data.lastBet;
         }
       }
     } catch(e) {}
@@ -1074,7 +1127,10 @@ button:disabled { opacity: 0.4; cursor: default; }
     game.phase = phase;
     $bettingArea.classList.toggle('hidden', phase !== 'betting');
     $actionBar.classList.toggle('hidden', phase !== 'playing');
-    $continueBar.classList.toggle('hidden', phase !== 'result');
+    $tableBet.classList.toggle('hidden', phase === 'betting');
+    if (phase !== 'betting' && game.currentBet > 0) {
+      $tableChipDisplay.textContent = '$' + game.currentBet;
+    }
   }
 
   function updateActionButtons() {
@@ -1229,7 +1285,7 @@ button:disabled { opacity: 0.4; cursor: default; }
       $brokeOverlay.classList.remove('hidden');
       return;
     }
-    game.currentBet = 0;
+    game.currentBet = game.lastBet > 0 ? Math.min(game.lastBet, game.balance) : 0;
     game.hands = [];
     game.dealer = { cards: [] };
     game.activeHandIndex = 0;
@@ -1246,7 +1302,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   }
 
   function updateBetDisplay() {
-    $currentBet.textContent = 'Bet: $' + game.currentBet;
+    $currentBet.textContent = game.currentBet > 0 ? '$' + game.currentBet : '$0';
     $dealBtn.disabled = game.currentBet <= 0;
     var chips = document.querySelectorAll('.chip[data-value]');
     for (var i = 0; i < chips.length; i++) {
@@ -1270,6 +1326,7 @@ button:disabled { opacity: 0.4; cursor: default; }
     if (game.currentBet <= 0 || game.busy) return;
     game.busy = true;
 
+    game.lastBet = game.currentBet;
     game.balance -= game.currentBet;
     game.hands = [{ cards: [], bet: game.currentBet, result: null, doubled: false, surrendered: false, stood: false, busted: false }];
     game.dealer = { cards: [] };
@@ -1578,16 +1635,23 @@ button:disabled { opacity: 0.4; cursor: default; }
 
   function endRound(messages) {
     game.busy = false;
+    game.phase = 'result';
+    $bettingArea.classList.add('hidden');
+    $actionBar.classList.add('hidden');
     checkPenetration();
     updateHUD();
     updateScores();
     saveState();
     showResult(messages);
-    showPhase('result');
     renderHandTabs();
+
+    if (game.resultTimer) clearTimeout(game.resultTimer);
+    game.resultTimer = setTimeout(dismissResult, 2000);
   }
 
-  function dealAgain() {
+  function dismissResult() {
+    if (game.resultTimer) { clearTimeout(game.resultTimer); game.resultTimer = null; }
+    if (game.phase === 'betting') return;
     hideResult();
     if (game.needsReshuffle) {
       $shuffleInd.classList.remove('hidden');
@@ -1660,7 +1724,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   $doubleBtn.addEventListener('click', playerDouble);
   $splitBtn.addEventListener('click', playerSplit);
   $surrenderBtn.addEventListener('click', playerSurrender);
-  $dealAgainBtn.addEventListener('click', dealAgain);
+  $resultOverlay.addEventListener('click', dismissResult);
   $reloadBtn.addEventListener('click', function() {
     game.balance = 1000;
     game.stats = { wins: 0, losses: 0, pushes: 0, blackjacks: 0 };
