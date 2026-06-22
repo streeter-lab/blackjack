@@ -443,6 +443,36 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
 .action-split .action-icon { background: linear-gradient(135deg, #3B82F6, #2563EB); border: 1px solid #1D4ED8; color: #fff; }
 .action-surrender .action-icon { background: linear-gradient(135deg, #64748B, #475569); border: 1px solid #334155; color: #fff; }
 
+/* ===== INSURANCE OFFER ===== */
+#insurance-offer {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0);
+  background: rgba(0,0,0,0.92); border-radius: 16px; padding: 20px 28px;
+  text-align: center; z-index: 25; opacity: 0;
+  transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 200ms;
+  border: 1px solid rgba(245,158,11,0.3); box-shadow: 0 0 40px rgba(245,158,11,0.2);
+  pointer-events: none;
+}
+#insurance-offer.visible { transform: translate(-50%, -50%) scale(1); opacity: 1; pointer-events: auto; }
+#insurance-offer h3 { font-size: 1.1rem; margin-bottom: 4px; color: var(--gold); }
+#insurance-offer .ins-sub { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 14px; }
+#insurance-offer .ins-btns { display: flex; gap: 10px; }
+#insurance-offer .ins-btns button {
+  flex: 1; padding: 10px 16px; border-radius: 10px; font-size: 0.85rem; font-weight: 700;
+  font-family: var(--font); min-height: var(--tap-min); transition: all 150ms;
+}
+#insurance-offer .ins-btns button:active { transform: scale(0.96); }
+.ins-yes { background: var(--gold); color: #000; }
+.ins-no { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+
+/* ===== SESSION STATS ===== */
+#stats-panel { display: flex; flex-direction: column; gap: 6px; }
+.stat-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
+.stat-row .stat-label { font-size: 0.85rem; color: var(--text-muted); }
+.stat-row .stat-value { font-size: 0.85rem; font-weight: 700; color: var(--text-primary); }
+.stat-row .stat-value.positive { color: #4ade80; }
+.stat-row .stat-value.negative { color: #f87171; }
+.stat-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 4px 0; }
+
 /* ===== TABLE BET CHIP STACK ===== */
 #table-bet { display: flex; justify-content: center; align-items: flex-end; gap: 10px; padding: 4px 0; z-index: 2; position: relative; min-height: 52px; }
 #table-bet.hidden { display: none; }
@@ -523,6 +553,15 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
   <div id="table-bet" class="hidden">
     <div id="table-chip-stack"></div>
     <div id="table-bet-label"></div>
+  </div>
+
+  <div id="insurance-offer">
+    <h3>Insurance?</h3>
+    <div class="ins-sub">Dealer shows Ace &mdash; costs <span id="ins-cost"></span></div>
+    <div class="ins-btns">
+      <button class="ins-no" id="ins-no-btn">No</button>
+      <button class="ins-yes" id="ins-yes-btn">Yes</button>
+    </div>
   </div>
 
   <div id="result-overlay" aria-live="assertive"></div>
@@ -641,6 +680,11 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
       </label>
     </div>
     <div class="setting-hint">Shows Hi-Lo running count, true count, and bet suggestions.</div>
+  </div>
+
+  <div class="setting-group">
+    <label>Session Statistics</label>
+    <div id="stats-panel"></div>
   </div>
 
   <button id="reset-stats-btn">Reset Statistics</button>
@@ -869,6 +913,11 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
   var $shoeIndicator = document.getElementById('shoe-indicator');
   var $shoeBar = document.getElementById('shoe-bar');
   var $shoePct = document.getElementById('shoe-pct');
+  var $insuranceOffer = document.getElementById('insurance-offer');
+  var $insCost = document.getElementById('ins-cost');
+  var $insYesBtn = document.getElementById('ins-yes-btn');
+  var $insNoBtn = document.getElementById('ins-no-btn');
+  var $statsPanel = document.getElementById('stats-panel');
   var $betModalOverlay = document.getElementById('bet-modal-overlay');
   var $betModalInput = document.getElementById('bet-modal-input');
   var $betModalMax = document.getElementById('bet-modal-max');
@@ -880,7 +929,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
   // ===== GAME STATE =====
   var game = {
     balance: 1000,
-    stats: { wins: 0, losses: 0, pushes: 0, blackjacks: 0 },
+    stats: { wins: 0, losses: 0, pushes: 0, blackjacks: 0, handsPlayed: 0, totalWagered: 0, peakBalance: 1000, insuranceWins: 0, insuranceLosses: 0, currentStreak: 0, bestStreak: 0, worstStreak: 0 },
     settings: { deckCount: 6, coachEnabled: false, soundEnabled: false, hapticsEnabled: true, countEnabled: false },
     shoe: [],
     deckCount: 6,
@@ -894,7 +943,9 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     hands: [],
     activeHandIndex: 0,
     busy: false,
-    resultTimer: null
+    resultTimer: null,
+    insuranceBet: 0,
+    startingBalance: 1000
   };
 
   // ===== PERSISTENCE =====
@@ -904,7 +955,8 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
         balance: game.balance,
         stats: game.stats,
         settings: game.settings,
-        lastBet: game.lastBet
+        lastBet: game.lastBet,
+        startingBalance: game.startingBalance
       }));
     } catch(e) {}
   }
@@ -919,6 +971,17 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
           game.stats.losses = data.stats.losses || 0;
           game.stats.pushes = data.stats.pushes || 0;
           game.stats.blackjacks = data.stats.blackjacks || 0;
+          game.stats.handsPlayed = data.stats.handsPlayed || 0;
+          game.stats.totalWagered = data.stats.totalWagered || 0;
+          game.stats.peakBalance = data.stats.peakBalance || 1000;
+          game.stats.insuranceWins = data.stats.insuranceWins || 0;
+          game.stats.insuranceLosses = data.stats.insuranceLosses || 0;
+          game.stats.currentStreak = data.stats.currentStreak || 0;
+          game.stats.bestStreak = data.stats.bestStreak || 0;
+          game.stats.worstStreak = data.stats.worstStreak || 0;
+        }
+        if (typeof data.startingBalance === 'number') {
+          game.startingBalance = data.startingBalance;
         }
         if (data.settings) {
           if ([1, 2, 4, 6].indexOf(data.settings.deckCount) !== -1) {
@@ -1353,7 +1416,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     var cards = hand.cards;
 
     if (cards.length === 2) {
-      var v1 = cardValue(cards.rank);
+      var v1 = cardValue(cards[0].rank);
       var v2 = cardValue(cards[1].rank);
       if (v1 === v2 && tables.pair[v1]) {
         return tables.pair[v1][idx];
@@ -1416,6 +1479,76 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     }
   }
 
+  // ===== SESSION STATS =====
+  function updateStreak(won) {
+    if (won) {
+      game.stats.currentStreak = game.stats.currentStreak > 0 ? game.stats.currentStreak + 1 : 1;
+    } else {
+      game.stats.currentStreak = game.stats.currentStreak < 0 ? game.stats.currentStreak - 1 : -1;
+    }
+    if (game.stats.currentStreak > game.stats.bestStreak) game.stats.bestStreak = game.stats.currentStreak;
+    if (game.stats.currentStreak < game.stats.worstStreak) game.stats.worstStreak = game.stats.currentStreak;
+  }
+
+  function renderStatsPanel() {
+    var total = game.stats.wins + game.stats.losses + game.stats.pushes;
+    var winRate = total > 0 ? ((game.stats.wins / total) * 100).toFixed(1) : '0.0';
+    var profit = game.balance - game.startingBalance;
+    var profitClass = profit > 0 ? 'positive' : profit < 0 ? 'negative' : '';
+    var profitStr = (profit >= 0 ? '+$' : '-$') + Math.abs(profit).toLocaleString();
+    var streak = game.stats.currentStreak;
+    var streakStr = streak > 0 ? '+' + streak + 'W' : streak < 0 ? Math.abs(streak) + 'L' : '—';
+
+    $statsPanel.innerHTML =
+      '<div class="stat-row"><span class="stat-label">Hands Played</span><span class="stat-value">' + game.stats.handsPlayed + '</span></div>' +
+      '<div class="stat-row"><span class="stat-label">Win Rate</span><span class="stat-value">' + winRate + '%</span></div>' +
+      '<div class="stat-row"><span class="stat-label">Blackjacks</span><span class="stat-value">' + game.stats.blackjacks + '</span></div>' +
+      '<div class="stat-divider"></div>' +
+      '<div class="stat-row"><span class="stat-label">Total Wagered</span><span class="stat-value">$' + game.stats.totalWagered.toLocaleString() + '</span></div>' +
+      '<div class="stat-row"><span class="stat-label">Net Profit</span><span class="stat-value ' + profitClass + '">' + profitStr + '</span></div>' +
+      '<div class="stat-row"><span class="stat-label">Peak Balance</span><span class="stat-value">$' + game.stats.peakBalance.toLocaleString() + '</span></div>' +
+      '<div class="stat-divider"></div>' +
+      '<div class="stat-row"><span class="stat-label">Current Streak</span><span class="stat-value">' + streakStr + '</span></div>' +
+      '<div class="stat-row"><span class="stat-label">Best Streak</span><span class="stat-value">' + (game.stats.bestStreak > 0 ? '+' + game.stats.bestStreak + 'W' : '—') + '</span></div>' +
+      '<div class="stat-row"><span class="stat-label">Worst Streak</span><span class="stat-value">' + (game.stats.worstStreak < 0 ? Math.abs(game.stats.worstStreak) + 'L' : '—') + '</span></div>' +
+      '<div class="stat-divider"></div>' +
+      '<div class="stat-row"><span class="stat-label">Insurance Wins</span><span class="stat-value">' + game.stats.insuranceWins + '</span></div>' +
+      '<div class="stat-row"><span class="stat-label">Insurance Losses</span><span class="stat-value">' + game.stats.insuranceLosses + '</span></div>';
+  }
+
+  // ===== INSURANCE =====
+  function offerInsurance() {
+    var maxIns = Math.floor(game.hands[0].bet / 2);
+    if (maxIns <= 0 || game.balance < maxIns) {
+      return Promise.resolve(false);
+    }
+    $insCost.textContent = '$' + maxIns;
+    $insuranceOffer.classList.add('visible');
+    return new Promise(function(resolve) {
+      function onYes() { cleanup(); resolve(true); }
+      function onNo()  { cleanup(); resolve(false); }
+      function cleanup() {
+        $insYesBtn.removeEventListener('click', onYes);
+        $insNoBtn.removeEventListener('click', onNo);
+        $insuranceOffer.classList.remove('visible');
+      }
+      $insYesBtn.addEventListener('click', onYes);
+      $insNoBtn.addEventListener('click', onNo);
+    });
+  }
+
+  function resolveInsurance(dealerHasBJ) {
+    if (game.insuranceBet <= 0) return;
+    if (dealerHasBJ) {
+      game.balance += game.insuranceBet * 3;
+      game.stats.insuranceWins++;
+      dealerSay('push', 1500);
+    } else {
+      game.stats.insuranceLosses++;
+    }
+    game.insuranceBet = 0;
+  }
+
   // ===== GAME FLOW =====
   function startBetting() {
     if (game.balance <= 0) {
@@ -1476,6 +1609,9 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
 
     game.lastBet = game.currentBet;
     game.balance -= game.currentBet;
+    game.stats.handsPlayed++;
+    game.stats.totalWagered += game.currentBet;
+    game.insuranceBet = 0;
     game.hands = [{ cards: [], bet: game.currentBet, result: null, doubled: false, surrendered: false, stood: false, busted: false }];
     game.dealer = { cards: [] };
     game.activeHandIndex = 0;
@@ -1521,44 +1657,70 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
   function afterDeal() {
     var dealerUp = game.dealer.cards[0];
     var dealerHole = game.dealer.cards[1];
+    var dealerUpVal = cardValue(dealerUp.rank);
 
-    if (cardValue(dealerUp.rank) === 10 || cardValue(dealerUp.rank) === 11) {
-      var dealerFull = [dealerUp, dealerHole];
-      if (isBlackjack(dealerFull)) {
-        dealerHole.faceDown = false;
-        var holeEl = $dealerCards.children[1];
-        flipCard(holeEl, dealerHole).then(function() {
-          updateCount(dealerHole);
-          updateScores();
-          if (isBlackjack(game.hands[0].cards)) {
-            game.hands[0].result = 'push';
-            game.balance += game.hands[0].bet;
-            game.stats.pushes++;
-            game.stats.blackjacks++;
-            endRound([{ text: 'Push', color: 'var(--text-muted)', sub: 'Both have Blackjack' }]);
-          } else {
-            game.hands[0].result = 'lose';
-            game.stats.losses++;
-            endRound([{ text: 'Dealer Blackjack', color: 'var(--btn-danger)', sub: '-$' + game.hands[0].bet }]);
-          }
-        });
+    var insurancePromise;
+    if (dealerUpVal === 11) {
+      insurancePromise = offerInsurance();
+    } else {
+      insurancePromise = Promise.resolve(false);
+    }
+
+    insurancePromise.then(function(tookInsurance) {
+      if (tookInsurance) {
+        var insBet = Math.floor(game.hands[0].bet / 2);
+        game.insuranceBet = insBet;
+        game.balance -= insBet;
+        game.stats.totalWagered += insBet;
+        updateHUD();
+      }
+
+      if (dealerUpVal === 10 || dealerUpVal === 11) {
+        var dealerFull = [dealerUp, dealerHole];
+        if (isBlackjack(dealerFull)) {
+          dealerHole.faceDown = false;
+          var holeEl = $dealerCards.children[1];
+          flipCard(holeEl, dealerHole).then(function() {
+            updateCount(dealerHole);
+            updateScores();
+            var insPayout = tookInsurance ? game.insuranceBet * 2 : 0;
+            resolveInsurance(true);
+            if (isBlackjack(game.hands[0].cards)) {
+              game.hands[0].result = 'push';
+              game.balance += game.hands[0].bet;
+              game.stats.pushes++;
+              game.stats.blackjacks++;
+              endRound([{ text: 'Push', color: 'var(--text-muted)', sub: 'Both have Blackjack' }]);
+            } else {
+              game.hands[0].result = 'lose';
+              game.stats.losses++;
+              updateStreak(false);
+              var sub = '-$' + game.hands[0].bet;
+              if (tookInsurance) sub += ' (insurance paid +$' + insPayout + ')';
+              endRound([{ text: 'Dealer Blackjack', color: 'var(--btn-danger)', sub: sub }]);
+            }
+          });
+          return;
+        }
+      }
+
+      resolveInsurance(false);
+
+      if (isBlackjack(game.hands[0].cards)) {
+        var payout = Math.round(game.hands[0].bet * 1.5);
+        game.balance += game.hands[0].bet + payout;
+        game.hands[0].result = 'blackjack';
+        game.stats.wins++;
+        game.stats.blackjacks++;
+        updateStreak(true);
+        endRound([{ text: 'Blackjack!', color: 'var(--gold)', sub: '+$' + payout }]);
         return;
       }
-    }
 
-    if (isBlackjack(game.hands[0].cards)) {
-      var payout = Math.round(game.hands[0].bet * 1.5);
-      game.balance += game.hands[0].bet + payout;
-      game.hands[0].result = 'blackjack';
-      game.stats.wins++;
-      game.stats.blackjacks++;
-      endRound([{ text: 'Blackjack!', color: 'var(--gold)', sub: '+$' + payout }]);
-      return;
-    }
-
-    game.busy = false;
-    updateActionButtons();
-    updateCoach();
+      game.busy = false;
+      updateActionButtons();
+      updateCoach();
+    });
   }
 
   function playerHit() {
@@ -1576,8 +1738,8 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
         hand.busted = true;
         hand.result = 'lose';
         game.stats.losses++;
-        
-        // Screen Shake
+        updateStreak(false);
+
         document.getElementById('table').classList.add('shake-active');
         playHaptic();
         setTimeout(function() { document.getElementById('table').classList.remove('shake-active'); }, 300);
@@ -1626,8 +1788,8 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
         hand.busted = true;
         hand.result = 'lose';
         game.stats.losses++;
-        
-        // Screen Shake
+        updateStreak(false);
+
         document.getElementById('table').classList.add('shake-active');
         playHaptic();
         setTimeout(function() { document.getElementById('table').classList.remove('shake-active'); }, 300);
@@ -1649,7 +1811,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     game.balance -= hand.bet;
     updateHUD();
 
-    var card1 = hand.cards;
+    var card1 = hand.cards[0];
     var card2 = hand.cards[1];
     var bet = hand.bet;
 
@@ -1693,6 +1855,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     var halfBack = Math.round(hand.bet / 2);
     game.balance += halfBack;
     game.stats.losses++;
+    updateStreak(false);
     updateHUD();
 
     endRound([{ text: 'Surrender', color: 'var(--text-muted)', sub: '-$' + (hand.bet - halfBack) }]);
@@ -1782,11 +1945,13 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
         hand.result = 'win';
         game.balance += hand.bet * 2;
         game.stats.wins++;
+        updateStreak(true);
         messages.push({ text: label + 'Win!', color: 'var(--gold)', sub: '+$' + hand.bet });
       } else if (playerTotal > dealerTotal) {
         hand.result = 'win';
         game.balance += hand.bet * 2;
         game.stats.wins++;
+        updateStreak(true);
         messages.push({ text: label + 'Win!', color: 'var(--gold)', sub: '+$' + hand.bet });
       } else if (playerTotal === dealerTotal) {
         hand.result = 'push';
@@ -1796,6 +1961,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
       } else {
         hand.result = 'lose';
         game.stats.losses++;
+        updateStreak(false);
         messages.push({ text: label + 'Lose', color: 'var(--btn-danger)', sub: '-$' + hand.bet });
       }
     }
@@ -1809,6 +1975,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     $bettingArea.classList.add('hidden');
     $actionBar.classList.add('hidden');
     checkPenetration();
+    if (game.balance > game.stats.peakBalance) game.stats.peakBalance = game.balance;
     updateHUD();
     updateScores();
     saveState();
@@ -1884,6 +2051,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     $soundToggle.checked = game.settings.soundEnabled;
     $hapticsToggle.checked = game.settings.hapticsEnabled;
     $countToggle.checked = game.settings.countEnabled;
+    renderStatsPanel();
   }
 
   function closeSettings() {
@@ -1891,7 +2059,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     $settingsOverlay.classList.remove('open');
 
     var newDeck = parseInt($deckSelect.value);
-    if ([1, 2].indexOf(newDeck) !== -1) {
+    if ([1, 2, 4, 6].indexOf(newDeck) !== -1) {
       game.settings.deckCount = newDeck;
     }
     game.settings.coachEnabled = $coachToggle.checked;
@@ -1906,9 +2074,11 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
   function resetStats() {
     if (confirm('Reset all statistics and balance?')) {
       game.balance = 1000;
-      game.stats = { wins: 0, losses: 0, pushes: 0, blackjacks: 0 };
+      game.startingBalance = 1000;
+      game.stats = { wins: 0, losses: 0, pushes: 0, blackjacks: 0, handsPlayed: 0, totalWagered: 0, peakBalance: 1000, insuranceWins: 0, insuranceLosses: 0, currentStreak: 0, bestStreak: 0, worstStreak: 0 };
       saveState();
       updateHUD();
+      renderStatsPanel();
       closeSettings();
       if (game.phase === 'betting') startBetting();
     }
@@ -1982,7 +2152,8 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
   $resultOverlay.addEventListener('click', dismissResult);
   $reloadBtn.addEventListener('click', function() {
     game.balance = 1000;
-    game.stats = { wins: 0, losses: 0, pushes: 0, blackjacks: 0 };
+    game.startingBalance = 1000;
+    game.stats = { wins: 0, losses: 0, pushes: 0, blackjacks: 0, handsPlayed: 0, totalWagered: 0, peakBalance: 1000, insuranceWins: 0, insuranceLosses: 0, currentStreak: 0, bestStreak: 0, worstStreak: 0 };
     initShoe();
     saveState();
     $brokeOverlay.classList.add('hidden');
