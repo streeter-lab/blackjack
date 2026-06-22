@@ -673,15 +673,15 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
 
   // ===== PIP LAYOUTS =====
   var PIP_LAYOUTS = {
-    '2':  [[1, 2],[1, 2]],
-    '3':  [[1, 2],[2],[1, 2]],
-    '4':  [[1, 1],[1],[1, 1],[1]],
-    '5':  [[1, 1],[1],[2],[1, 1],[1]],
-    '6':  [[1, 1],[1],[1],,[1, 1],[1]],
-    '7':  [[1, 1],[1],[2, 2],[1],,[1, 1],[1]],
-    '8':  [[1, 1],[1],[2, 2],[1],,[1, 2],[1, 1],[1]],
-    '9':  [[1, 1],[1],[1],,[2],[1, 1],[1],[1, 1],[1]],
-    '10': [[1, 1],[1],[1, 2],[2],[2],[1, 2],[1, 1],[1],[1, 1],[1]]
+    '2':  [[2,1],[2,7,1]],
+    '3':  [[2,1],[2,4],[2,7,1]],
+    '4':  [[1,1],[3,1],[1,7,1],[3,7,1]],
+    '5':  [[1,1],[3,1],[2,4],[1,7,1],[3,7,1]],
+    '6':  [[1,1],[3,1],[1,4],[3,4],[1,7,1],[3,7,1]],
+    '7':  [[1,1],[3,1],[1,4],[2,3],[3,4],[1,7,1],[3,7,1]],
+    '8':  [[1,1],[3,1],[2,3],[1,4],[3,4],[2,5,1],[1,7,1],[3,7,1]],
+    '9':  [[1,1],[3,1],[1,3],[3,3],[2,4],[1,5,1],[3,5,1],[1,7,1],[3,7,1]],
+    '10': [[1,1],[3,1],[2,2],[1,3],[3,3],[1,5,1],[3,5,1],[2,6,1],[1,7,1],[3,7,1]]
   };
 
   var DEALER_LINES = {
@@ -829,7 +829,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
           game.stats.blackjacks = data.stats.blackjacks || 0;
         }
         if (data.settings) {
-          if ([1, 2].indexOf(data.settings.deckCount) !== -1) {
+          if ([1, 2, 4, 6].indexOf(data.settings.deckCount) !== -1) {
             game.settings.deckCount = data.settings.deckCount;
           }
           game.settings.coachEnabled = !!data.settings.coachEnabled;
@@ -876,7 +876,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
   function initShoe() {
     game.deckCount = game.settings.deckCount;
     game.shoe = fisherYatesShuffle(createShoe(game.deckCount));
-    game.penetrationMark = Math.floor(game.shoe.length * 0.75);
+    game.penetrationMark = Math.floor(game.shoe.length * 0.25);
     game.needsReshuffle = false;
     game.runningCount = 0;
   }
@@ -971,7 +971,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     if (hand.cards.length !== 2) return false;
     if (game.hands.length >= 4) return false;
     if (game.balance < hand.bet) return false;
-    return cardValue(hand.cards.rank) === cardValue(hand.cards[1].rank);
+    return cardValue(hand.cards[0].rank) === cardValue(hand.cards[1].rank);
   }
 
   function canDouble(hand) {
@@ -995,7 +995,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
       var pipHtml = '';
       for (var i = 0; i < pips.length; i++) {
         pipHtml += '<span class="pip' + (pips[i][2] ? ' flip' : '') +
-          '" style="grid-column:' + pips[i] + ';grid-row:' + pips[i][1] + '">' + suit + '</span>';
+          '" style="grid-column:' + pips[i][0] + ';grid-row:' + pips[i][1] + '">' + suit + '</span>';
       }
       body = '<div class="card-pips">' + pipHtml + '</div>';
     } else if (rank === 'A') {
@@ -1379,7 +1379,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     var dc2 = drawCard();
     dc2.faceDown = true;
 
-    game.hands.cards.push(pc1);
+    game.hands[0].cards.push(pc1);
     animateDeal($playerCards, pc1, false, 0)
     .then(function() {
       updateCount(pc1);
@@ -1388,7 +1388,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     })
     .then(function() {
       updateCount(dc1);
-      game.hands.cards.push(pc2);
+      game.hands[0].cards.push(pc2);
       updateScores();
       return animateDeal($playerCards, pc2, false, 200);
     })
@@ -1405,37 +1405,37 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
   }
 
   function afterDeal() {
-    var dealerUp = game.dealer.cards;
+    var dealerUp = game.dealer.cards[0];
     var dealerHole = game.dealer.cards[1];
 
     if (cardValue(dealerUp.rank) === 10 || cardValue(dealerUp.rank) === 11) {
-      var dealerFull = [dealerUp, { rank: dealerHole.rank, suit: dealerHole.suit }];
+      var dealerFull = [dealerUp, dealerHole];
       if (isBlackjack(dealerFull)) {
         dealerHole.faceDown = false;
         var holeEl = $dealerCards.children[1];
         flipCard(holeEl, dealerHole).then(function() {
           updateCount(dealerHole);
           updateScores();
-          if (isBlackjack(game.hands.cards)) {
-            game.hands.result = 'push';
-            game.balance += game.hands.bet;
+          if (isBlackjack(game.hands[0].cards)) {
+            game.hands[0].result = 'push';
+            game.balance += game.hands[0].bet;
             game.stats.pushes++;
             game.stats.blackjacks++;
             endRound([{ text: 'Push', color: 'var(--text-muted)', sub: 'Both have Blackjack' }]);
           } else {
-            game.hands.result = 'lose';
+            game.hands[0].result = 'lose';
             game.stats.losses++;
-            endRound([{ text: 'Dealer Blackjack', color: 'var(--btn-danger)', sub: '-$' + game.hands.bet }]);
+            endRound([{ text: 'Dealer Blackjack', color: 'var(--btn-danger)', sub: '-$' + game.hands[0].bet }]);
           }
         });
         return;
       }
     }
 
-    if (isBlackjack(game.hands.cards)) {
-      var payout = Math.round(game.hands.bet * 1.5);
-      game.balance += game.hands.bet + payout;
-      game.hands.result = 'blackjack';
+    if (isBlackjack(game.hands[0].cards)) {
+      var payout = Math.round(game.hands[0].bet * 1.5);
+      game.balance += game.hands[0].bet + payout;
+      game.hands[0].result = 'blackjack';
       game.stats.wins++;
       game.stats.blackjacks++;
       endRound([{ text: 'Blackjack!', color: 'var(--gold)', sub: '+$' + payout }]);
@@ -1639,7 +1639,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
 
   function dealerDraw() {
     var total = handValue(game.dealer.cards);
-    if (total < 17) {
+    if (total < 17 || (total === 17 && isSoft(game.dealer.cards))) {
       var card = drawCard();
       game.dealer.cards.push(card);
       animateDeal($dealerCards, card, false, 400).then(function() {
@@ -1718,7 +1718,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     var quipKind = hasBJ ? 'blackjack' : dealerBusted ? 'bust' : hasGold ? 'win' : hasRed ? 'lose' : 'push';
     dealerSay(quipKind, 1800);
     playSound(quipKind === 'bust' ? 'win' : quipKind);
-    playHaptic(hasGold ? :);
+    playHaptic(hasGold ? [50, 30, 50] : [30]);
 
     showResult(messages);
     renderHandTabs();
@@ -1875,7 +1875,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
   }
 
   function setIcons() {
-    var sizes =;
+    var sizes = [192, 512, 180];
     for (var i = 0; i < sizes.length; i++) {
       var dataUrl = generateIcon(sizes[i]);
       if (sizes[i] === 180) {
@@ -1896,7 +1896,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
 
   function dataURItoBlob(dataURI) {
     var byteString = atob(dataURI.split(',')[1]);
-    var mimeString = dataURI.split(',').split(':')[1].split(';');
+    var mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
     var ab = new ArrayBuffer(byteString.length);
     var ia = new Uint8Array(ab);
     for (var i = 0; i < byteString.length; i++) {
