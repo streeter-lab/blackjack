@@ -514,6 +514,39 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
 #settings-close-btn { padding: 12px; border-radius: 10px; background: rgba(255,255,255,0.05); color: var(--text-primary); font-size: 1rem; font-weight: 600; min-height: var(--tap-min); margin-top: auto; }
 #reset-stats-btn { padding: 10px; border-radius: 8px; background: rgba(225, 29, 72, 0.15); color: var(--btn-danger); font-size: 0.85rem; font-weight: 600; min-height: var(--tap-min); }
 
+/* ===== ACHIEVEMENT TOAST ===== */
+#achievement-toast {
+  position: fixed; top: 60px; left: 50%; transform: translateX(-50%) translateY(-120px);
+  background: linear-gradient(135deg, rgba(15,8,0,0.95), rgba(30,16,0,0.95));
+  border: 1px solid rgba(245,158,11,0.4); border-radius: 14px;
+  padding: 12px 18px; display: flex; align-items: center; gap: 12px;
+  z-index: 110; pointer-events: none; min-width: 240px; max-width: 320px;
+  box-shadow: 0 8px 32px rgba(245,158,11,0.25), 0 0 60px rgba(245,158,11,0.1);
+  transition: transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 300ms;
+  opacity: 0;
+}
+#achievement-toast.visible { transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: auto; }
+#achievement-toast .ach-icon { font-size: 1.8rem; flex-shrink: 0; line-height: 1; }
+#achievement-toast .ach-info { display: flex; flex-direction: column; gap: 1px; }
+#achievement-toast .ach-unlocked { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--gold); font-weight: 700; }
+#achievement-toast .ach-name { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); }
+#achievement-toast .ach-desc { font-size: 0.7rem; color: var(--text-muted); }
+
+/* ===== ACHIEVEMENTS PANEL ===== */
+#achievements-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ach-card {
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px; padding: 10px; display: flex; flex-direction: column;
+  align-items: center; gap: 4px; text-align: center; transition: all 200ms;
+}
+.ach-card.unlocked { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.2); }
+.ach-card.locked { opacity: 0.4; filter: grayscale(0.8); }
+.ach-card .ach-card-icon { font-size: 1.5rem; line-height: 1; }
+.ach-card .ach-card-name { font-size: 0.7rem; font-weight: 700; color: var(--text-primary); line-height: 1.2; }
+.ach-card .ach-card-desc { font-size: 0.6rem; color: var(--text-muted); line-height: 1.2; }
+.ach-card .ach-card-date { font-size: 0.55rem; color: var(--gold); margin-top: 2px; }
+.ach-progress { font-size: 0.75rem; color: var(--text-muted); text-align: center; margin-bottom: 4px; }
+
 /* ===== RESPONSIVE ===== */
 @media (min-width: 420px) {
   :root { --card-w: 76px; --card-h: 108px; }
@@ -594,7 +627,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
   <div class="action-group">
     <button id="hit-btn" class="action-btn action-hit"><span class="action-icon">&#x1F0CF;</span><span class="action-label">Hit</span></button>
     <button id="stand-btn" class="action-btn action-stand"><span class="action-icon">&#9995;</span><span class="action-label">Stand</span></button>
-    <button id="double-btn" class="action-btn action-double"><span class="action-icon">&#10007;</span><span class="action-label">Double</span></button>
+    <button id="double-btn" class="action-btn action-double"><span class="action-icon">2&times;</span><span class="action-label">Double</span></button>
     <button id="split-btn" class="action-btn action-split" disabled><span class="action-icon">&#8646;</span><span class="action-label">Split</span></button>
     <button id="surrender-btn" class="action-btn action-surrender"><span class="action-icon">&#9873;</span><span class="action-label">Give Up</span></button>
   </div>
@@ -614,6 +647,14 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
 </div>
 
 <div id="bet-toast"></div>
+<div id="achievement-toast">
+  <span class="ach-icon"></span>
+  <div class="ach-info">
+    <span class="ach-unlocked">Achievement Unlocked</span>
+    <span class="ach-name"></span>
+    <span class="ach-desc"></span>
+  </div>
+</div>
 
 <div id="broke-overlay" class="hidden">
   <h2>You're Broke!</h2>
@@ -680,6 +721,11 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
       </label>
     </div>
     <div class="setting-hint">Shows Hi-Lo running count, true count, and bet suggestions.</div>
+  </div>
+
+  <div class="setting-group">
+    <label>Achievements <span id="ach-counter" style="color:var(--gold);font-size:0.75rem"></span></label>
+    <div id="achievements-panel"></div>
   </div>
 
   <div class="setting-group">
@@ -913,6 +959,9 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
   var $shoeIndicator = document.getElementById('shoe-indicator');
   var $shoeBar = document.getElementById('shoe-bar');
   var $shoePct = document.getElementById('shoe-pct');
+  var $achToast = document.getElementById('achievement-toast');
+  var $achPanel = document.getElementById('achievements-panel');
+  var $achCounter = document.getElementById('ach-counter');
   var $insuranceOffer = document.getElementById('insurance-offer');
   var $insCost = document.getElementById('ins-cost');
   var $insYesBtn = document.getElementById('ins-yes-btn');
@@ -945,7 +994,9 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     busy: false,
     resultTimer: null,
     insuranceBet: 0,
-    startingBalance: 1000
+    startingBalance: 1000,
+    achievements: {},
+    _achQueue: []
   };
 
   // ===== PERSISTENCE =====
@@ -956,7 +1007,8 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
         stats: game.stats,
         settings: game.settings,
         lastBet: game.lastBet,
-        startingBalance: game.startingBalance
+        startingBalance: game.startingBalance,
+        achievements: game.achievements
       }));
     } catch(e) {}
   }
@@ -982,6 +1034,9 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
         }
         if (typeof data.startingBalance === 'number') {
           game.startingBalance = data.startingBalance;
+        }
+        if (data.achievements && typeof data.achievements === 'object') {
+          game.achievements = data.achievements;
         }
         if (data.settings) {
           if ([1, 2, 4, 6].indexOf(data.settings.deckCount) !== -1) {
@@ -1516,6 +1571,109 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
       '<div class="stat-row"><span class="stat-label">Insurance Losses</span><span class="stat-value">' + game.stats.insuranceLosses + '</span></div>';
   }
 
+  // ===== ACHIEVEMENTS =====
+  var ACHIEVEMENTS = [
+    { id: 'first_win',      icon: '🏆', name: 'First Win',       desc: 'Win your first hand' },
+    { id: 'first_bj',       icon: '🃏', name: 'Natural',         desc: 'Get a blackjack' },
+    { id: 'streak_5',       icon: '🔥', name: 'Hot Streak',      desc: 'Win 5 hands in a row' },
+    { id: 'streak_10',      icon: '☄️', name: 'On Fire',          desc: 'Win 10 hands in a row' },
+    { id: 'hands_50',       icon: '🎰', name: 'Regular',         desc: 'Play 50 hands' },
+    { id: 'hands_200',      icon: '🎲', name: 'Veteran',         desc: 'Play 200 hands' },
+    { id: 'hands_500',      icon: '👑', name: 'Card Sharp',      desc: 'Play 500 hands' },
+    { id: 'balance_2500',   icon: '💰', name: 'Stacking Up',     desc: 'Reach a $2,500 balance' },
+    { id: 'balance_5000',   icon: '💎', name: 'Big Baller',      desc: 'Reach a $5,000 balance' },
+    { id: 'balance_10000',  icon: '🏦', name: 'Five Figures',    desc: 'Reach a $10,000 balance' },
+    { id: 'double_win',     icon: '✌️', name: 'Double Trouble',  desc: 'Win a doubled hand' },
+    { id: 'split_win',      icon: '🪓', name: 'Split Decision',  desc: 'Win a split hand' },
+    { id: 'insurance_win',  icon: '🛡️', name: 'Insured',         desc: 'Win an insurance bet' },
+    { id: 'high_roller',    icon: '🎩', name: 'High Roller',     desc: 'Place a $500+ bet' },
+    { id: 'comeback',       icon: '🦅', name: 'Comeback Kid',    desc: 'Recover to $1,000+ after dropping below $100' },
+    { id: 'ten_bj',         icon: '⭐', name: 'Blackjack Pro',   desc: 'Get 10 blackjacks' },
+  ];
+
+  var _achToastTimer = null;
+
+  function unlockAchievement(id) {
+    if (game.achievements[id]) return;
+    game.achievements[id] = Date.now();
+    saveState();
+    var def = ACHIEVEMENTS.find(function(a) { return a.id === id; });
+    if (def) {
+      game._achQueue.push(def);
+      if (!_achToastTimer) showNextAchToast();
+    }
+  }
+
+  function showNextAchToast() {
+    if (game._achQueue.length === 0) { _achToastTimer = null; return; }
+    var def = game._achQueue.shift();
+    $achToast.querySelector('.ach-icon').textContent = def.icon;
+    $achToast.querySelector('.ach-name').textContent = def.name;
+    $achToast.querySelector('.ach-desc').textContent = def.desc;
+    $achToast.classList.add('visible');
+    playSound('blackjack');
+    playHaptic([50, 30, 50, 30, 50]);
+    _achToastTimer = setTimeout(function() {
+      $achToast.classList.remove('visible');
+      _achToastTimer = setTimeout(showNextAchToast, 400);
+    }, 3000);
+  }
+
+  function checkAchievements() {
+    var s = game.stats;
+    if (s.wins >= 1) unlockAchievement('first_win');
+    if (s.blackjacks >= 1) unlockAchievement('first_bj');
+    if (s.blackjacks >= 10) unlockAchievement('ten_bj');
+    if (s.bestStreak >= 5) unlockAchievement('streak_5');
+    if (s.bestStreak >= 10) unlockAchievement('streak_10');
+    if (s.handsPlayed >= 50) unlockAchievement('hands_50');
+    if (s.handsPlayed >= 200) unlockAchievement('hands_200');
+    if (s.handsPlayed >= 500) unlockAchievement('hands_500');
+    if (game.balance >= 2500) unlockAchievement('balance_2500');
+    if (game.balance >= 5000) unlockAchievement('balance_5000');
+    if (game.balance >= 10000) unlockAchievement('balance_10000');
+    if (s.insuranceWins >= 1) unlockAchievement('insurance_win');
+    if (game.balance >= 1000 && game.stats.peakBalance > 1000 && game._hitBelow100) {
+      unlockAchievement('comeback');
+    }
+    if (game.balance < 100 && game.balance > 0) game._hitBelow100 = true;
+  }
+
+  function checkBetAchievements(amount) {
+    if (amount >= 500) unlockAchievement('high_roller');
+  }
+
+  function checkHandAchievements() {
+    for (var i = 0; i < game.hands.length; i++) {
+      var h = game.hands[i];
+      if (h.result === 'win' && h.doubled) unlockAchievement('double_win');
+      if (h.result === 'win' && game.hands.length > 1) unlockAchievement('split_win');
+    }
+  }
+
+  function renderAchievementsPanel() {
+    var unlocked = Object.keys(game.achievements).length;
+    $achCounter.textContent = unlocked + '/' + ACHIEVEMENTS.length;
+    $achPanel.innerHTML = '';
+    for (var i = 0; i < ACHIEVEMENTS.length; i++) {
+      var a = ACHIEVEMENTS[i];
+      var isUnlocked = !!game.achievements[a.id];
+      var card = document.createElement('div');
+      card.className = 'ach-card ' + (isUnlocked ? 'unlocked' : 'locked');
+      var dateStr = '';
+      if (isUnlocked) {
+        var d = new Date(game.achievements[a.id]);
+        dateStr = '<div class="ach-card-date">' + (d.getMonth()+1) + '/' + d.getDate() + '/' + d.getFullYear() + '</div>';
+      }
+      card.innerHTML =
+        '<div class="ach-card-icon">' + (isUnlocked ? a.icon : '🔒') + '</div>' +
+        '<div class="ach-card-name">' + a.name + '</div>' +
+        '<div class="ach-card-desc">' + a.desc + '</div>' +
+        dateStr;
+      $achPanel.appendChild(card);
+    }
+  }
+
   // ===== INSURANCE =====
   function offerInsurance() {
     var maxIns = Math.floor(game.hands[0].bet / 2);
@@ -1608,6 +1766,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     playHaptic();
 
     game.lastBet = game.currentBet;
+    checkBetAchievements(game.currentBet);
     game.balance -= game.currentBet;
     game.stats.handsPlayed++;
     game.stats.totalWagered += game.currentBet;
@@ -2003,6 +2162,8 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
 
     showResult(messages);
     renderHandTabs();
+    checkHandAchievements();
+    checkAchievements();
 
     if (game.resultTimer) clearTimeout(game.resultTimer);
     game.resultTimer = setTimeout(dismissResult, 2000);
@@ -2052,6 +2213,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     $hapticsToggle.checked = game.settings.hapticsEnabled;
     $countToggle.checked = game.settings.countEnabled;
     renderStatsPanel();
+    renderAchievementsPanel();
   }
 
   function closeSettings() {
