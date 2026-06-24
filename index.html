@@ -9,10 +9,11 @@
 <meta name="theme-color" content="#020617">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap">
 <title>Blackjack</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap');
-
 /* ===== CUSTOM PROPERTIES ===== */
 :root {
   --felt: #0f172a;
@@ -2043,10 +2044,11 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
 
         document.getElementById('table').classList.add('shake-active');
         playHaptic();
-        setTimeout(function() { document.getElementById('table').classList.remove('shake-active'); }, 300);
-
-        game.busy = false;
-        advanceToNextHand();
+        setTimeout(function() {
+          document.getElementById('table').classList.remove('shake-active');
+          game.busy = false;
+          advanceToNextHand();
+        }, 350);
       } else if (handValue(hand.cards) === 21) {
         hand.stood = true;
         game.busy = false;
@@ -2093,13 +2095,16 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
 
         document.getElementById('table').classList.add('shake-active');
         playHaptic();
-        setTimeout(function() { document.getElementById('table').classList.remove('shake-active'); }, 300);
-
+        setTimeout(function() {
+          document.getElementById('table').classList.remove('shake-active');
+          game.busy = false;
+          advanceToNextHand();
+        }, 350);
       } else {
         hand.stood = true;
+        game.busy = false;
+        advanceToNextHand();
       }
-      game.busy = false;
-      advanceToNextHand();
     });
   }
 
@@ -2107,6 +2112,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     if (game.busy) return;
     var hand = game.hands[game.activeHandIndex];
     if (!canSplit(hand)) return;
+    game.busy = true;
     checkDeviation('P');
 
     game.balance -= hand.bet;
@@ -2115,6 +2121,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     var card1 = hand.cards[0];
     var card2 = hand.cards[1];
     var bet = hand.bet;
+    var isAces = card1.rank === 'A';
 
     var hand1 = { cards: [card1], bet: bet, result: null, doubled: false, surrendered: false, stood: false, busted: false };
     var hand2 = { cards: [card2], bet: bet, result: null, doubled: false, surrendered: false, stood: false, busted: false };
@@ -2126,7 +2133,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
 
     game.hands.splice(game.activeHandIndex, 1, hand1, hand2);
 
-    if (card1.rank === 'A') {
+    if (isAces) {
       hand1.stood = true;
       hand2.stood = true;
     }
@@ -2134,15 +2141,30 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     renderPlayerCards();
     renderHandTabs();
     updateScores();
-    updateCount(newCard1);
-    updateCount(newCard2);
 
-    if (card1.rank === 'A') {
-      advanceToNextHand();
-    } else {
-      updateActionButtons();
-      updateCoach();
-    }
+    animateDeal($playerCards, newCard1, false, 200).then(function() {
+      updateCount(newCard1);
+      updateScores();
+      game.activeHandIndex = game.activeHandIndex + 1;
+      renderPlayerCards();
+      renderHandTabs();
+      return animateDeal($playerCards, newCard2, false, 200);
+    }).then(function() {
+      updateCount(newCard2);
+      updateScores();
+      game.activeHandIndex = game.activeHandIndex - 1;
+      renderPlayerCards();
+      renderHandTabs();
+
+      if (isAces) {
+        game.busy = false;
+        advanceToNextHand();
+      } else {
+        game.busy = false;
+        updateActionButtons();
+        updateCoach();
+      }
+    });
   }
 
   function playerSurrender() {
@@ -2471,6 +2493,9 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     startBetting();
   });
   $settingsBtn.addEventListener('click', openSettings);
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && $settingsDrawer.classList.contains('open')) closeSettings();
+  });
   $settingsOverlay.addEventListener('click', closeSettings);
   $settingsCloseBtn.addEventListener('click', closeSettings);
   $resetStatsBtn.addEventListener('click', resetStats);
@@ -2516,11 +2541,11 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
         document.head.appendChild(link);
       }
       try {
-        var blob = dataURItoBlob(dataUrl);
-        var name = 'icon-' + sizes[i] + '.png';
-        caches.open('blackjack-v2').then(function(cache) {
-          cache.put(new Request('/' + name), new Response(blob, { headers: { 'Content-Type': 'image/png' } }));
-        });
+        (function(iconBlob, iconName) {
+          caches.open('blackjack-v2').then(function(cache) {
+            cache.put(new Request('/' + iconName), new Response(iconBlob, { headers: { 'Content-Type': 'image/png' } }));
+          });
+        })(dataURItoBlob(dataUrl), 'icon-' + sizes[i] + '.png');
       } catch(e) {}
     }
   }
