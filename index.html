@@ -290,12 +290,12 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
   flex-direction: column;
   align-items: center;
   line-height: 1;
-  font-size: 0.7rem;
+  font-size: 0.62rem;
   font-weight: 800;
 }
-.card-corner .suit { font-size: 0.75rem; margin-top: 2px; }
-.card-corner.tl { top: 4px; left: 5px; }
-.card-corner.br { bottom: 4px; right: 5px; transform: rotate(180deg); }
+.card-corner .suit { font-size: 0.55rem; margin-top: 0; }
+.card-corner.tl { top: 3px; left: 4px; }
+.card-corner.br { bottom: 3px; right: 4px; transform: rotate(180deg); }
 .card.face-down {
   background: 
     linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 100%),
@@ -310,13 +310,14 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
 .card.face-down .card-ace,
 .card.face-down .card-face { visibility: hidden; }
 
-.card-pips { position: absolute; inset: 20px 5px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(7, 1fr); pointer-events: none; }
-.pip { display: flex; align-items: center; justify-content: center; font-size: 0.7rem; line-height: 1; }
+.card-pips { position: absolute; inset: 23px 7px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(7, 1fr); pointer-events: none; }
+.pip { display: flex; align-items: center; justify-content: center; font-size: 0.5rem; line-height: 1; }
 .pip.flip { transform: rotate(180deg); }
 .card-ace { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2.6rem; line-height: 1; pointer-events: none; }
-.card-face { position: absolute; inset: 22px 6px; border: 1.5px solid currentColor; border-radius: 4px; opacity: 0.15; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 2px; font-weight: 800; pointer-events: none; }
-.face-letter { font-size: 1.5rem; line-height: 1; }
-.face-suit   { font-size: 0.8rem; }
+.card-face { position: absolute; inset: 22px 6px; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 2px; font-weight: 800; pointer-events: none; }
+.card-face::before { content: ''; position: absolute; inset: 0; border: 1.5px solid currentColor; border-radius: 4px; opacity: 0.25; }
+.face-letter { font-size: 1.7rem; line-height: 1; }
+.face-suit   { font-size: 1rem; }
 
 .card-row.win  .card { box-shadow: 0 0 20px rgba(245,158,11,0.4), -2px 4px 10px rgba(0,0,0,0.4), inset 0 0 0 1px var(--gold); transform: translateY(-5px); }
 .card-row.bust .card { opacity: 0.6; filter: grayscale(0.6); }
@@ -619,7 +620,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
 /* ===== RESPONSIVE ===== */
 @media (min-width: 420px) {
   :root { --card-w: 76px; --card-h: 108px; }
-  .pip { font-size: 0.8rem; }
+  .pip { font-size: 0.58rem; }
   .card-ace { font-size: 2.8rem; }
   .face-letter { font-size: 1.8rem; }
 }
