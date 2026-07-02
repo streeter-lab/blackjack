@@ -1134,6 +1134,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     insuranceBet: 0,
     startingBalance: 1000,
     achievements: {},
+    hitBelow100: false,
     _achQueue: []
   };
 
@@ -1146,7 +1147,8 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
         settings: game.settings,
         lastBet: game.lastBet,
         startingBalance: game.startingBalance,
-        achievements: game.achievements
+        achievements: game.achievements,
+        hitBelow100: game.hitBelow100
       }));
     } catch(e) {}
   }
@@ -1175,6 +1177,9 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
         }
         if (data.achievements && typeof data.achievements === 'object') {
           game.achievements = data.achievements;
+        }
+        if (typeof data.hitBelow100 === 'boolean') {
+          game.hitBelow100 = data.hitBelow100;
         }
         if (data.settings) {
           if ([1, 2, 4, 6].indexOf(data.settings.deckCount) !== -1) {
@@ -1224,14 +1229,41 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
   function initShoe() {
     game.deckCount = game.settings.deckCount;
     game.shoe = fisherYatesShuffle(createShoe(game.deckCount));
-    game.penetrationMark = Math.floor(game.shoe.length * 0.25);
+    game.penetrationMark = Math.floor(game.shoe.length * 0.75);
     game.needsReshuffle = false;
     game.runningCount = 0;
   }
 
   function drawCard() {
-    if (game.shoe.length === 0) initShoe();
+    if (game.shoe.length === 0) rebuildShoeMidRound();
     return game.shoe.pop();
+  }
+
+  function rebuildShoeMidRound() {
+    // The shoe ran dry mid-round. A plain initShoe() would duplicate the
+    // cards still on the table and wipe the running count, so build a fresh
+    // shoe minus the in-play cards and recount only what's visible.
+    var shoe = createShoe(game.deckCount);
+    var inPlay = game.dealer.cards.slice();
+    for (var i = 0; i < game.hands.length; i++) {
+      inPlay = inPlay.concat(game.hands[i].cards);
+    }
+    var rc = 0;
+    for (var j = 0; j < inPlay.length; j++) {
+      for (var k = 0; k < shoe.length; k++) {
+        if (shoe[k].rank === inPlay[j].rank && shoe[k].suit === inPlay[j].suit) {
+          shoe.splice(k, 1);
+          break;
+        }
+      }
+      if (!inPlay[j].faceDown) rc += hiLoValue(inPlay[j].rank);
+    }
+    game.shoe = fisherYatesShuffle(shoe);
+    game.penetrationMark = Math.floor(shoe.length * 0.75);
+    game.needsReshuffle = false;
+    game.runningCount = rc;
+    renderCountPill();
+    renderShoeIndicator();
   }
 
   function hiLoValue(rank) {
@@ -1774,10 +1806,10 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     if (game.balance >= 5000) unlockAchievement('balance_5000');
     if (game.balance >= 10000) unlockAchievement('balance_10000');
     if (s.insuranceWins >= 1) unlockAchievement('insurance_win');
-    if (game.balance >= 1000 && game.stats.peakBalance > 1000 && game._hitBelow100) {
+    if (game.balance < 100 && game.balance > 0) game.hitBelow100 = true;
+    if (game.balance >= 1000 && game.stats.peakBalance > 1000 && game.hitBelow100) {
       unlockAchievement('comeback');
     }
-    if (game.balance < 100 && game.balance > 0) game._hitBelow100 = true;
   }
 
   function checkBetAchievements(amount) {
@@ -2078,6 +2110,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     checkDeviation('D');
 
     game.balance -= hand.bet;
+    game.stats.totalWagered += hand.bet;
     hand.bet *= 2;
     hand.doubled = true;
     updateHUD();
@@ -2117,6 +2150,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     checkDeviation('P');
 
     game.balance -= hand.bet;
+    game.stats.totalWagered += hand.bet;
     updateHUD();
 
     var card1 = hand.cards[0];
@@ -2186,7 +2220,9 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
   }
 
   function advanceToNextHand() {
-    var nextIdx = game.activeHandIndex + 1;
+    // Scan from the start: hand tabs let the player play hands out of
+    // order, so earlier hands may still be unresolved.
+    var nextIdx = 0;
     while (nextIdx < game.hands.length) {
       var h = game.hands[nextIdx];
       if (!h.stood && !h.busted && !h.surrendered) break;
@@ -2293,9 +2329,25 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     endRound(messages);
   }
 
+  function revealHoleCard() {
+    var hole = game.dealer.cards[1];
+    if (!hole || !hole.faceDown) return;
+    hole.faceDown = false;
+    var el = $dealerCards.children[1];
+    if (el) {
+      flipCard(el, hole).then(function() {
+        updateCount(hole);
+        updateScores();
+      });
+    } else {
+      updateCount(hole);
+    }
+  }
+
   function endRound(messages) {
     game.busy = false;
     game.phase = 'result';
+    revealHoleCard();
     $bettingArea.classList.add('hidden');
     $actionBar.classList.add('hidden');
     checkPenetration();
@@ -2336,6 +2388,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     renderHandTabs();
     checkHandAchievements();
     checkAchievements();
+    saveState();
 
     if (game.resultTimer) clearTimeout(game.resultTimer);
     game.resultTimer = setTimeout(dismissResult, 2000);
@@ -2410,6 +2463,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
       game.balance = 1000;
       game.startingBalance = 1000;
       game.stats = { wins: 0, losses: 0, pushes: 0, blackjacks: 0, handsPlayed: 0, totalWagered: 0, peakBalance: 1000, insuranceWins: 0, insuranceLosses: 0, currentStreak: 0, bestStreak: 0, worstStreak: 0 };
+      game.hitBelow100 = false;
       saveState();
       updateHUD();
       renderStatsPanel();
@@ -2488,6 +2542,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
     game.balance = 1000;
     game.startingBalance = 1000;
     game.stats = { wins: 0, losses: 0, pushes: 0, blackjacks: 0, handsPlayed: 0, totalWagered: 0, peakBalance: 1000, insuranceWins: 0, insuranceLosses: 0, currentStreak: 0, bestStreak: 0, worstStreak: 0 };
+    game.hitBelow100 = false;
     initShoe();
     saveState();
     $brokeOverlay.classList.add('hidden');
@@ -2543,7 +2598,7 @@ button:disabled { opacity: 0.3; cursor: default; filter: grayscale(1); }
       }
       try {
         (function(iconBlob, iconName) {
-          caches.open('blackjack-v2').then(function(cache) {
+          caches.open('blackjack-v3').then(function(cache) {
             cache.put(new Request('/' + iconName), new Response(iconBlob, { headers: { 'Content-Type': 'image/png' } }));
           });
         })(dataURItoBlob(dataUrl), 'icon-' + sizes[i] + '.png');

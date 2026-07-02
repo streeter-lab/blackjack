@@ -6,7 +6,7 @@ A mobile-first blackjack game with a basic strategy coach. Single-file HTML app 
 
 - Configurable shoe size (1, 2, 4, or 6 decks)
 - Full blackjack rules: Hit, Stand, Double Down, Split, Late Surrender
-- Dealer stands on soft 17, blackjack pays 3:2
+- Dealer hits soft 17, blackjack pays 3:2
 - Basic strategy coach with single-deck and multi-deck tables
 - Persistent balance and statistics via localStorage
 - Works fully offline after first load

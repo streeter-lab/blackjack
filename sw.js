@@ -1,4 +1,4 @@
-var CACHE_NAME = 'blackjack-v2';
+var CACHE_NAME = 'blackjack-v3';
 var ASSETS = ['/', '/index.html', '/manifest.json', '/sw.js'];
 
 self.addEventListener('install', function(e) {
@@ -28,6 +28,30 @@ self.addEventListener('activate', function(e) {
 
 self.addEventListener('fetch', function(e) {
   if (e.request.method !== 'GET') return;
+
+  var isHTML = e.request.mode === 'navigate' ||
+    (e.request.headers.get('accept') || '').indexOf('text/html') !== -1;
+
+  if (isHTML) {
+    // Network-first for pages so deploys reach users; cache is the offline fallback.
+    e.respondWith(
+      fetch(e.request).then(function(response) {
+        if (response.ok) {
+          var clone = response.clone();
+          caches.open(CACHE_NAME).then(function(cache) {
+            cache.put(e.request, clone);
+          });
+        }
+        return response;
+      }).catch(function() {
+        return caches.match(e.request).then(function(cached) {
+          return cached || caches.match('/index.html');
+        });
+      })
+    );
+    return;
+  }
+
   e.respondWith(
     caches.match(e.request).then(function(cached) {
       if (cached) return cached;
